@@ -1,0 +1,2381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerraGrid Energy — Predictive Maintenance System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════
+   DESIGN SYSTEM — TerraGrid Industrial Dark
+═══════════════════════════════════════════════════ */
+:root {
+  --c-bg:       #050c18;
+  --c-bg1:      #080f1e;
+  --c-bg2:      #0c1525;
+  --c-bg3:      #10192e;
+  --c-surface:  #111d33;
+  --c-surface2: #172238;
+  --c-border:   #1c2e4a;
+  --c-border2:  #243a5e;
+
+  --c-teal:     #00d4c8;
+  --c-teal-dim: rgba(0,212,200,0.12);
+  --c-green:    #00e676;
+  --c-green-dim:rgba(0,230,118,0.12);
+  --c-amber:    #ffab00;
+  --c-amber-dim:rgba(255,171,0,0.12);
+  --c-red:      #ff1744;
+  --c-red-dim:  rgba(255,23,68,0.12);
+  --c-blue:     #2979ff;
+  --c-purple:   #d500f9;
+
+  --c-text:     #e2ecff;
+  --c-text2:    #7a9ccc;
+  --c-text3:    #3d5a82;
+  --c-text4:    #1e3054;
+
+  --f-display: 'Syne', sans-serif;
+  --f-body:    'Outfit', sans-serif;
+  --f-mono:    'JetBrains Mono', monospace;
+
+  --sidebar-w: 256px;
+  --header-h:  64px;
+  --r:  8px;
+  --r2: 14px;
+  --r3: 20px;
+
+  --shadow: 0 4px 24px rgba(0,0,0,0.5);
+  --glow-teal: 0 0 24px rgba(0,212,200,0.2);
+  --glow-red:  0 0 24px rgba(255,23,68,0.25);
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: var(--f-body);
+  background: var(--c-bg);
+  color: var(--c-text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── SCROLLBAR ─────────────────────────────────── */
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--c-border2); border-radius:3px; }
+
+/* ─── ANIMATIONS ────────────────────────────────── */
+@keyframes fadeUp   { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn   { from{opacity:0} to{opacity:1} }
+@keyframes slideIn  { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
+@keyframes pulse    { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+@keyframes spin     { to{transform:rotate(360deg)} }
+@keyframes scanline { 0%{transform:translateY(-100%)} 100%{transform:translateY(100vh)} }
+@keyframes blink    { 0%,100%{opacity:1} 50%{opacity:0} }
+@keyframes shimmer  {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ══════════════════════════════════════════════════
+   AUTH SCREEN
+══════════════════════════════════════════════════ */
+#auth {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(ellipse 80% 60% at 30% 40%, #001a33 0%, var(--c-bg) 70%);
+}
+
+.auth-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,212,200,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,200,.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  animation: fadeIn 2s ease;
+}
+
+.auth-glow {
+  position: absolute;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,212,200,0.06) 0%, transparent 70%);
+  top: -100px; left: -100px;
+  pointer-events: none;
+}
+
+.auth-scanline {
+  position: absolute; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0,212,200,0.15), transparent);
+  animation: scanline 8s linear infinite;
+  pointer-events: none;
+}
+
+.auth-card {
+  position: relative;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r3);
+  padding: 48px 44px;
+  width: 460px;
+  animation: fadeUp .6s ease;
+  box-shadow: 0 40px 80px rgba(0,0,0,.7), var(--glow-teal);
+}
+
+.auth-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 32px; right: 32px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c-teal), transparent);
+  opacity: .6;
+}
+
+.brand {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 36px;
+}
+.brand-mark {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, var(--c-teal), var(--c-green));
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 0 20px rgba(0,212,200,.35);
+  flex-shrink: 0;
+}
+.brand-text h1 {
+  font-family: var(--f-display);
+  font-size: 20px; font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.brand-text p {
+  font-family: var(--f-mono);
+  font-size: 10px; color: var(--c-text3);
+  letter-spacing: .1em; margin-top: 2px;
+  text-transform: uppercase;
+}
+
+.auth-heading { font-family: var(--f-display); font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+.auth-sub { font-size: 14px; color: var(--c-text2); margin-bottom: 32px; }
+
+.field { margin-bottom: 20px; }
+.field label {
+  display: block;
+  font-family: var(--f-mono); font-size: 10px;
+  color: var(--c-text3); letter-spacing: .1em;
+  text-transform: uppercase; margin-bottom: 8px;
+}
+.field input, .field select, .field textarea {
+  width: 100%;
+  background: var(--c-bg2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r);
+  padding: 13px 16px;
+  color: var(--c-text);
+  font-family: var(--f-body); font-size: 14px;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--c-teal);
+  box-shadow: 0 0 0 3px rgba(0,212,200,.1);
+}
+.field select option { background: var(--c-bg2); }
+
+.btn-login {
+  width: 100%; border: none; border-radius: var(--r);
+  padding: 14px; cursor: pointer;
+  font-family: var(--f-display); font-size: 15px; font-weight: 700;
+  background: linear-gradient(135deg, var(--c-teal), #007acc);
+  color: #000;
+  letter-spacing: .02em;
+  transition: all .2s;
+  position: relative; overflow: hidden;
+}
+.btn-login::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent);
+  transform: translateX(-100%);
+  transition: transform .4s;
+}
+.btn-login:hover::after { transform: translateX(100%); }
+.btn-login:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,212,200,.3); }
+.btn-login:active { transform: translateY(0); }
+
+.quick-access {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--c-border);
+}
+.quick-access p {
+  font-family: var(--f-mono); font-size: 10px;
+  color: var(--c-text3); letter-spacing: .08em;
+  margin-bottom: 12px;
+}
+.quick-row { display: flex; gap: 8px; }
+.quick-pill {
+  flex: 1; padding: 10px 8px;
+  background: var(--c-bg3); border: 1px solid var(--c-border);
+  border-radius: var(--r); cursor: pointer;
+  font-family: var(--f-mono); font-size: 11px; font-weight: 500;
+  color: var(--c-text2); text-align: center;
+  transition: all .2s;
+}
+.quick-pill span { display: block; font-size: 9px; color: var(--c-text3); margin-top: 2px; }
+.quick-pill:hover { border-color: var(--c-teal); color: var(--c-teal); background: var(--c-teal-dim); }
+
+.auth-err {
+  background: var(--c-red-dim); border: 1px solid rgba(255,23,68,.3);
+  border-radius: var(--r); padding: 10px 14px;
+  font-size: 13px; color: var(--c-red);
+  margin-bottom: 16px; display: none;
+}
+
+/* ══════════════════════════════════════════════════
+   APP SHELL
+══════════════════════════════════════════════════ */
+#app { display: none; }
+#app.show { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ─── HEADER ───────────────────────────────────── */
+.topbar {
+  height: var(--header-h);
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-border);
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 200;
+  display: flex; align-items: center;
+  padding: 0 20px 0 0;
+}
+.topbar-brand {
+  width: var(--sidebar-w); flex-shrink: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 20px;
+  border-right: 1px solid var(--c-border);
+  height: 100%;
+}
+.topbar-brand .bm {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, var(--c-teal), var(--c-green));
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.topbar-brand .bn {
+  font-family: var(--f-display);
+  font-size: 15px; font-weight: 800;
+  letter-spacing: -.01em;
+}
+.topbar-mid {
+  flex: 1; display: flex; align-items: center;
+  gap: 20px; padding: 0 24px;
+}
+.live-indicator {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--f-mono); font-size: 11px;
+  color: var(--c-text2); letter-spacing: .06em;
+}
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--c-green);
+  box-shadow: 0 0 8px var(--c-green);
+  animation: pulse 2s infinite;
+}
+.sys-clock {
+  font-family: var(--f-mono); font-size: 12px;
+  color: var(--c-text3);
+}
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.notif-btn {
+  position: relative; width: 36px; height: 36px;
+  background: var(--c-bg3); border: 1px solid var(--c-border);
+  border-radius: var(--r); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; transition: all .2s; color: var(--c-text2);
+}
+.notif-btn:hover { border-color: var(--c-teal); color: var(--c-teal); }
+.notif-badge {
+  position: absolute; top: -4px; right: -4px;
+  width: 16px; height: 16px;
+  background: var(--c-red); border-radius: 50%;
+  border: 2px solid var(--c-surface);
+  font-family: var(--f-mono); font-size: 9px;
+  font-weight: 700; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.user-widget {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--c-bg3); border: 1px solid var(--c-border);
+  border-radius: 30px; padding: 5px 16px 5px 5px;
+  cursor: pointer; transition: border-color .2s;
+  title: "Click to change password";
+}
+.user-widget:hover { border-color: var(--c-teal); }
+.user-widget:hover .uw-role::after { content: ' · Click to change password'; color: var(--c-teal); }
+.uw-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--c-blue), var(--c-teal));
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--f-display); font-size: 13px; font-weight: 700; color: #fff;
+}
+.uw-info { line-height: 1.3; }
+.uw-name { font-size: 13px; font-weight: 600; }
+.uw-role { font-family: var(--f-mono); font-size: 9px; color: var(--c-text3); letter-spacing: .08em; }
+.logout-btn {
+  background: transparent; border: 1px solid var(--c-border);
+  border-radius: var(--r); padding: 7px 14px;
+  color: var(--c-text2); font-family: var(--f-mono); font-size: 11px;
+  cursor: pointer; transition: all .2s; letter-spacing: .04em;
+}
+.logout-btn:hover { border-color: var(--c-red); color: var(--c-red); }
+
+/* ─── SIDEBAR ──────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w); flex-shrink: 0;
+  background: var(--c-surface);
+  border-right: 1px solid var(--c-border);
+  position: fixed; top: var(--header-h); bottom: 0; left: 0;
+  z-index: 100; overflow-y: auto;
+  padding: 20px 0 40px;
+  display: flex; flex-direction: column;
+}
+.nav-group { margin-bottom: 4px; }
+.nav-group-label {
+  font-family: var(--f-mono); font-size: 9px;
+  letter-spacing: .14em; color: var(--c-text4);
+  text-transform: uppercase;
+  padding: 12px 20px 6px;
+}
+.nav-link {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 20px;
+  cursor: pointer; transition: all .15s;
+  color: var(--c-text2); font-size: 13.5px; font-weight: 500;
+  border-left: 3px solid transparent;
+  position: relative;
+  text-decoration: none;
+}
+.nav-link:hover {
+  background: rgba(0,212,200,.04);
+  color: var(--c-text);
+}
+.nav-link.active {
+  background: rgba(0,212,200,.07);
+  color: var(--c-teal);
+  border-left-color: var(--c-teal);
+}
+.nav-link .ni { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+.nav-badge {
+  margin-left: auto; background: var(--c-red);
+  color: #fff; font-family: var(--f-mono); font-size: 10px;
+  padding: 2px 7px; border-radius: 10px; font-weight: 700;
+}
+.nav-badge.warn { background: var(--c-amber); color: #000; }
+
+.sidebar-footer {
+  margin-top: auto; padding: 16px 20px;
+  border-top: 1px solid var(--c-border);
+}
+.sidebar-version {
+  font-family: var(--f-mono); font-size: 10px;
+  color: var(--c-text3); letter-spacing: .04em;
+}
+.sidebar-uptime {
+  font-family: var(--f-mono); font-size: 10px;
+  color: var(--c-green); margin-top: 3px;
+}
+
+/* ─── MAIN CONTENT ─────────────────────────────── */
+.main-wrap {
+  margin-left: var(--sidebar-w);
+  margin-top: var(--header-h);
+  min-height: calc(100vh - var(--header-h));
+  padding: 28px;
+  flex: 1;
+}
+
+/* ─── PAGE SYSTEM ──────────────────────────────── */
+.page { display: none; animation: fadeUp .3s ease; }
+.page.active { display: block; }
+
+.page-head { margin-bottom: 28px; display: flex; align-items: flex-start; justify-content: space-between; }
+.page-title { font-family: var(--f-display); font-size: 26px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 4px; }
+.page-sub { font-size: 13px; color: var(--c-text2); }
+.page-actions { display: flex; gap: 10px; align-items: center; }
+
+/* ═══════════════════════════════════════════════════
+   COMPONENTS
+═══════════════════════════════════════════════════ */
+
+/* ─── BUTTONS ──────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 18px; border-radius: var(--r);
+  font-family: var(--f-body); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .2s; border: 1px solid transparent;
+  text-decoration: none; white-space: nowrap;
+}
+.btn-primary { background: var(--c-teal); border-color: var(--c-teal); color: #000; }
+.btn-primary:hover { background: #00e5d8; box-shadow: 0 4px 16px rgba(0,212,200,.35); transform: translateY(-1px); }
+.btn-outline { background: transparent; border-color: var(--c-border2); color: var(--c-text2); }
+.btn-outline:hover { border-color: var(--c-teal); color: var(--c-teal); background: var(--c-teal-dim); }
+.btn-danger-out { background: transparent; border-color: rgba(255,23,68,.3); color: var(--c-red); }
+.btn-danger-out:hover { background: var(--c-red-dim); border-color: var(--c-red); }
+.btn-sm { padding: 7px 13px; font-size: 12px; }
+.btn-xs { padding: 4px 10px; font-size: 11px; }
+.btn-icon { padding: 9px; }
+
+/* ─── CARDS ────────────────────────────────────── */
+.card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r2);
+  overflow: hidden;
+}
+.card:hover { border-color: var(--c-border2); }
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--c-border);
+}
+.card-title {
+  font-family: var(--f-mono); font-size: 11px;
+  letter-spacing: .08em; color: var(--c-text2);
+  text-transform: uppercase;
+}
+.card-body { padding: 20px; }
+
+/* ─── KPI STAT CARDS ───────────────────────────── */
+.kpi-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 16px; margin-bottom: 24px; }
+@media(max-width:1400px) { .kpi-grid { grid-template-columns: repeat(3,1fr); } }
+@media(max-width:900px)  { .kpi-grid { grid-template-columns: repeat(2,1fr); } }
+
+.kpi-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r2);
+  padding: 22px;
+  position: relative; overflow: hidden;
+  transition: transform .2s, box-shadow .2s, border-color .2s;
+}
+.kpi-card:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,0,0,.4); border-color: var(--c-border2); }
+.kpi-card::after {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--kpi-color, var(--c-teal));
+}
+.kpi-accent-bg {
+  position: absolute; top: -20px; right: -20px;
+  width: 80px; height: 80px; border-radius: 50%;
+  background: var(--kpi-color, var(--c-teal));
+  opacity: .05;
+}
+.kpi-icon { font-size: 22px; margin-bottom: 14px; }
+.kpi-val {
+  font-family: var(--f-display); font-size: 36px; font-weight: 800;
+  line-height: 1; margin-bottom: 6px;
+  color: var(--kpi-color, var(--c-text));
+}
+.kpi-label {
+  font-family: var(--f-mono); font-size: 10px;
+  letter-spacing: .1em; color: var(--c-text3);
+  text-transform: uppercase; margin-bottom: 10px;
+}
+.kpi-change {
+  font-size: 12px; color: var(--c-green);
+  display: flex; align-items: center; gap: 4px;
+}
+.kpi-change.neg { color: var(--c-red); }
+.kpi-change.neu { color: var(--c-amber); }
+
+/* ─── LAYOUT GRIDS ─────────────────────────────── */
+.grid-2   { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid-3   { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.grid-4   { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+.grid-7-3 { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+.grid-6-4 { display: grid; grid-template-columns: 3fr 2fr; gap: 20px; }
+@media(max-width:1300px) {
+  .grid-7-3, .grid-6-4, .grid-2, .grid-3 { grid-template-columns: 1fr; }
+}
+
+.mb-5 { margin-bottom: 20px; }
+.mb-6 { margin-bottom: 24px; }
+
+/* ─── TABLE ────────────────────────────────────── */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+  padding: 11px 16px; text-align: left;
+  font-family: var(--f-mono); font-size: 10px;
+  letter-spacing: .1em; color: var(--c-text3);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--c-border);
+  white-space: nowrap; background: var(--c-bg3);
+}
+td {
+  padding: 13px 16px;
+  border-bottom: 1px solid rgba(28,46,74,.5);
+  vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tbody tr { transition: background .15s; }
+tbody tr:hover td { background: rgba(255,255,255,.02); }
+tbody tr.clickable { cursor: pointer; }
+
+/* ─── BADGES ───────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px;
+  font-family: var(--f-mono); font-size: 10px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+}
+.badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.badge-healthy { background: var(--c-green-dim); color: var(--c-green); border: 1px solid rgba(0,230,118,.2); }
+.badge-warning { background: var(--c-amber-dim); color: var(--c-amber); border: 1px solid rgba(255,171,0,.2); }
+.badge-critical { background: var(--c-red-dim); color: var(--c-red); border: 1px solid rgba(255,23,68,.2); animation: glow-red 2s infinite; }
+.badge-blue    { background: rgba(41,121,255,.12); color: var(--c-blue); border: 1px solid rgba(41,121,255,.2); }
+.badge-purple  { background: rgba(213,0,249,.1); color: var(--c-purple); border: 1px solid rgba(213,0,249,.2); }
+.badge-neutral { background: var(--c-bg3); color: var(--c-text2); border: 1px solid var(--c-border); }
+@keyframes glow-red {
+  0%,100%{box-shadow:0 0 0 transparent}
+  50%{box-shadow:0 0 10px rgba(255,23,68,.3)}
+}
+
+/* ─── RISK BAR ─────────────────────────────────── */
+.risk-bar { height: 5px; background: var(--c-bg3); border-radius: 3px; overflow: hidden; }
+.risk-fill { height: 100%; border-radius: 3px; transition: width .8s ease; }
+.risk-low  { background: linear-gradient(90deg, var(--c-green), #00e676cc); }
+.risk-med  { background: linear-gradient(90deg, var(--c-amber), #ffab00cc); }
+.risk-high { background: linear-gradient(90deg, var(--c-red), #ff1744cc); box-shadow: 0 0 6px rgba(255,23,68,.5); }
+
+/* ─── ALERTS PANEL ─────────────────────────────── */
+.alert-list { display: flex; flex-direction: column; }
+.alert-item {
+  display: flex; gap: 12px; padding: 13px 0;
+  border-bottom: 1px solid rgba(28,46,74,.6);
+  align-items: flex-start;
+}
+.alert-item:last-child { border-bottom: none; }
+.alert-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.alert-dot.cr { background: var(--c-red); box-shadow: 0 0 8px var(--c-red); animation: pulse 1.5s infinite; }
+.alert-dot.wn { background: var(--c-amber); box-shadow: 0 0 8px var(--c-amber); }
+.alert-dot.in { background: var(--c-teal); }
+.alert-text { font-size: 12.5px; line-height: 1.55; }
+.alert-meta { font-family: var(--f-mono); font-size: 10px; color: var(--c-text3); margin-top: 3px; }
+
+/* ─── EQUIPMENT CARDS ──────────────────────────── */
+.eq-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); gap: 16px; }
+.eq-card {
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: var(--r2); padding: 22px;
+  cursor: pointer; transition: all .2s;
+  position: relative; overflow: hidden;
+}
+.eq-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; bottom: 0; width: 3px;
+  background: var(--eq-color, var(--c-border));
+  transition: background .2s;
+}
+.eq-card:hover { border-color: var(--c-border2); transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,.5); }
+.eq-card.critical { --eq-color: var(--c-red); }
+.eq-card.warning  { --eq-color: var(--c-amber); }
+.eq-card.healthy  { --eq-color: var(--c-green); }
+.eq-card-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.eq-name { font-family: var(--f-display); font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+.eq-meta { font-family: var(--f-mono); font-size: 10px; color: var(--c-text3); }
+.eq-sensors { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin: 14px 0; }
+.eq-sensor { background: var(--c-bg2); border-radius: var(--r); padding: 10px 8px; text-align: center; border: 1px solid var(--c-border); }
+.eq-sensor-val { font-family: var(--f-mono); font-size: 16px; font-weight: 700; }
+.eq-sensor-lab { font-size: 9px; color: var(--c-text3); margin-top: 2px; text-transform: uppercase; letter-spacing: .06em; }
+.eq-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+.eq-loc { font-size: 11px; color: var(--c-text3); font-family: var(--f-mono); }
+.eq-eff { font-size: 11px; color: var(--c-teal); font-family: var(--f-mono); }
+
+/* ─── TIMELINE ─────────────────────────────────── */
+.timeline { position: relative; padding-left: 22px; }
+.timeline::before { content:''; position:absolute; left:7px; top:8px; bottom:8px; width:2px; background:var(--c-border); }
+.tl-item { position: relative; margin-bottom: 22px; }
+.tl-item:last-child { margin-bottom: 0; }
+.tl-item::before {
+  content:''; position:absolute; left:-19px; top:5px;
+  width:10px; height:10px; border-radius:50%;
+  background: var(--c-teal); border:2px solid var(--c-bg);
+  box-shadow: 0 0 6px var(--c-teal);
+}
+.tl-date { font-family: var(--f-mono); font-size: 10px; color: var(--c-text3); margin-bottom: 5px; }
+.tl-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.tl-desc { font-size: 12px; color: var(--c-text2); line-height: 1.5; }
+.tl-tech { font-family: var(--f-mono); font-size: 10px; color: var(--c-teal); margin-top: 5px; }
+
+/* ─── PREDICTION DIAL ──────────────────────────── */
+.pred-dial-wrap { text-align: center; padding: 20px 0; }
+.pred-dial { width: 150px; height: 150px; position: relative; margin: 0 auto 12px; }
+.pred-dial svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.pred-dial-num {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  font-family: var(--f-display); font-size: 30px; font-weight: 800;
+  line-height: 1; text-align: center;
+}
+.pred-dial-sub { font-family: var(--f-mono); font-size: 10px; color: var(--c-text3); display: block; margin-top: 2px; }
+.pred-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pred-box {
+  background: var(--c-bg2); border: 1px solid var(--c-border);
+  border-radius: var(--r); padding: 14px;
+}
+.pred-box-label { font-family: var(--f-mono); font-size: 9px; color: var(--c-text3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+.pred-box-val { font-family: var(--f-mono); font-size: 18px; font-weight: 700; }
+.pred-rec {
+  margin-top: 14px; padding: 14px;
+  border-radius: var(--r); border-left: 3px solid var(--c-teal);
+  background: var(--c-bg2);
+}
+.pred-rec-label { font-family: var(--f-mono); font-size: 9px; color: var(--c-text3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+.pred-rec-text { font-size: 12.5px; line-height: 1.6; color: var(--c-text2); }
+.pred-factors { margin-top: 14px; }
+.pred-factor {
+  display: flex; gap: 10px; padding: 8px 0;
+  border-bottom: 1px solid rgba(28,46,74,.5);
+  font-size: 12px; color: var(--c-text2); line-height: 1.5;
+}
+.pred-factor:last-child { border-bottom: none; }
+.pf-icon { flex-shrink: 0; width: 20px; text-align: center; }
+
+/* ─── MODAL ────────────────────────────────────── */
+.modal-bg {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.75);
+  backdrop-filter: blur(6px);
+  z-index: 500;
+  display: none; align-items: center; justify-content: center;
+}
+.modal-bg.open { display: flex; }
+.modal {
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: var(--r3); padding: 32px;
+  width: 540px; max-width: 92vw; max-height: 90vh; overflow-y: auto;
+  animation: fadeUp .3s ease;
+  box-shadow: 0 40px 80px rgba(0,0,0,.7);
+  position: relative;
+}
+.modal-title { font-family: var(--f-display); font-size: 20px; font-weight: 700; margin-bottom: 24px; }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--c-border); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.form-row .field { margin-bottom: 0; }
+.field { margin-bottom: 14px; }
+
+/* ─── TOAST ────────────────────────────────────── */
+.toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 600; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.toast {
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: var(--r); padding: 14px 18px;
+  font-size: 13.5px; min-width: 280px; max-width: 360px;
+  pointer-events: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  animation: fadeUp .3s ease;
+  display: flex; align-items: center; gap: 10px;
+}
+.toast.success { border-left: 3px solid var(--c-green); }
+.toast.error   { border-left: 3px solid var(--c-red); }
+.toast.info    { border-left: 3px solid var(--c-teal); }
+.toast.warn    { border-left: 3px solid var(--c-amber); }
+.toast-icon { font-size: 16px; flex-shrink: 0; }
+
+/* ─── MISC ─────────────────────────────────────── */
+.mono   { font-family: var(--f-mono); }
+.muted  { color: var(--c-text2); }
+.small  { font-size: 12px; }
+.tag {
+  display: inline-block; padding: 3px 9px;
+  background: var(--c-bg3); border: 1px solid var(--c-border);
+  border-radius: 5px; font-family: var(--f-mono);
+  font-size: 10px; color: var(--c-text2); letter-spacing: .04em;
+}
+.flex { display: flex; align-items: center; }
+.flex-col { display: flex; flex-direction: column; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.gap-4 { gap: 16px; }
+.between { justify-content: space-between; }
+.center { justify-content: center; text-align: center; }
+.w100 { width: 100%; }
+input[type=range] { width: 100%; accent-color: var(--c-teal); }
+.divider { border: none; border-top: 1px solid var(--c-border); margin: 16px 0; }
+.report-row {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--c-bg3); border: 1px solid var(--c-border);
+  border-radius: var(--r); padding: 16px;
+  cursor: pointer; transition: all .2s; margin-bottom: 10px;
+}
+.report-row:hover { border-color: var(--c-teal); background: var(--c-teal-dim); }
+.report-row-icon { font-size: 28px; flex-shrink: 0; }
+.report-row h4 { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+.report-row p  { font-size: 12px; color: var(--c-text2); }
+.report-row .rr-type { margin-left: auto; color: var(--c-text3); font-family: var(--f-mono); font-size: 11px; flex-shrink: 0; }
+.setting-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid rgba(28,46,74,.5); }
+.setting-row:last-child { border-bottom: none; }
+.setting-label { font-size: 13px; font-weight: 500; }
+.setting-sub   { font-size: 11px; color: var(--c-text2); margin-top: 2px; }
+.info-row { display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid rgba(28,46,74,.5); font-size: 13px; }
+.info-row:last-child { border-bottom: none; }
+.explain-row { display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px solid rgba(28,46,74,.5); }
+.explain-row:last-child { border-bottom: none; }
+.er-icon { font-size: 20px; flex-shrink: 0; }
+.er-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.er-desc  { font-size: 12px; color: var(--c-text2); line-height: 1.55; }
+.contrib-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+.contrib-label { font-family: var(--f-mono); font-size: 11px; color: var(--c-text2); width: 110px; flex-shrink: 0; }
+.contrib-bar   { flex: 1; height: 8px; background: var(--c-bg3); border-radius: 4px; overflow: hidden; }
+.contrib-fill  { height: 100%; border-radius: 4px; background: var(--c-teal); }
+.contrib-val   { font-family: var(--f-mono); font-size: 11px; color: var(--c-text2); width: 36px; text-align: right; }
+.empty-state { text-align: center; padding: 40px 20px; color: var(--c-text3); }
+.empty-state .es-icon { font-size: 40px; margin-bottom: 12px; }
+.empty-state p { font-size: 13px; }
+.skeleton {
+  background: linear-gradient(90deg, var(--c-bg3) 25%, var(--c-bg2) 50%, var(--c-bg3) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════
+     AUTH SCREEN
+════════════════════════════════════════════════ -->
+<div id="auth">
+  <div class="auth-grid"></div>
+  <div class="auth-glow"></div>
+  <div class="auth-scanline"></div>
+  <div class="auth-card">
+    <div class="brand">
+      <div class="brand-mark">⚡</div>
+      <div class="brand-text">
+        <h1>TerraGrid Energy</h1>
+        <p>Predictive Maintenance System</p>
+      </div>
+    </div>
+    <h2 class="auth-heading">Sign In</h2>
+    <p class="auth-sub">Access your plant operations dashboard</p>
+    <div class="auth-err" id="auth-err">Invalid credentials. Please try again.</div>
+    <div class="field">
+      <label>Email Address</label>
+      <input type="email" id="l-email" placeholder="you@company.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-login" onclick="doLogin()">Access Dashboard →</button>
+    <div style="margin-top:20px;text-align:center">
+      <p style="font-family:var(--f-mono);font-size:10px;color:var(--c-text3);letter-spacing:.06em">
+        SECURE ACCESS · TERRAGRID ENERGY SYSTEMS v2.4.1
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Change Password Modal (shown after first login) -->
+<div class="modal-bg" id="change-pw-modal" style="z-index:9999">
+  <div class="modal">
+    <h2 class="modal-title">🔐 Change Your Password</h2>
+    <p style="font-size:13px;color:var(--c-text2);margin-bottom:20px;line-height:1.6" id="change-pw-reason">
+      You are using the default password. Please set a personal password to secure your account.
+    </p>
+    <div class="field">
+      <label>Current Password</label>
+      <input type="password" id="cp-current" style="width:100%;background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px 14px;color:var(--c-text);font-family:var(--f-body);font-size:14px;outline:none" placeholder="Enter current password">
+    </div>
+    <div class="field">
+      <label>New Password</label>
+      <input type="password" id="cp-new" style="width:100%;background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px 14px;color:var(--c-text);font-family:var(--f-body);font-size:14px;outline:none" placeholder="Min. 8 characters">
+    </div>
+    <div class="field">
+      <label>Confirm New Password</label>
+      <input type="password" id="cp-confirm" style="width:100%;background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px 14px;color:var(--c-text);font-family:var(--f-body);font-size:14px;outline:none" placeholder="Repeat new password">
+    </div>
+    <div class="auth-err" id="cp-err" style="display:none">Error message here</div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="cp-cancel-btn" onclick="closeModal('change-pw-modal')" style="display:none">Cancel</button>
+      <button class="btn btn-primary" onclick="doChangePassword()">Update Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     APP SHELL
+════════════════════════════════════════════════ -->
+<div id="app">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="bm">⚡</div>
+      <span class="bn">TerraGrid</span>
+    </div>
+    <div class="topbar-mid">
+      <div class="live-indicator"><div class="live-dot"></div>LIVE MONITORING</div>
+      <div class="sys-clock" id="sys-clock"></div>
+    </div>
+    <div class="topbar-right">
+      <button class="notif-btn" onclick="toast('3 critical alerts require immediate attention','error')">
+        🔔<div class="notif-badge">3</div>
+      </button>
+      <div class="user-widget" onclick="openChangePassword()" title="Click to change password">
+        <div class="uw-avatar" id="uw-avatar">A</div>
+        <div class="uw-info">
+          <div class="uw-name" id="uw-name">Admin</div>
+          <div class="uw-role" id="uw-role">ADMINISTRATOR</div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-group">
+      <div class="nav-group-label">Overview</div>
+      <div class="nav-link active" id="nl-dashboard" onclick="goPage('dashboard',this)">
+        <span class="ni">📊</span>Dashboard
+      </div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Operations</div>
+      <div class="nav-link" id="nl-equipment" onclick="goPage('equipment',this)">
+        <span class="ni">⚙️</span>Equipment
+      </div>
+      <div class="nav-link" id="nl-predictions" onclick="goPage('predictions',this)">
+        <span class="ni">🤖</span>ML Predictions<span class="nav-badge">3</span>
+      </div>
+      <div class="nav-link" id="nl-maintenance" onclick="goPage('maintenance',this)">
+        <span class="ni">🔧</span>Maintenance
+      </div>
+    </div>
+    <div class="nav-group" id="admin-group">
+      <div class="nav-group-label">Management</div>
+      <div class="nav-link" id="nl-reports" onclick="goPage('reports',this)">
+        <span class="ni">📄</span>Reports
+      </div>
+      <div class="nav-link" id="nl-users" onclick="goPage('users',this)">
+        <span class="ni">👥</span>Users
+      </div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">System</div>
+      <div class="nav-link" id="nl-settings" onclick="goPage('settings',this)">
+        <span class="ni">⚙</span>Settings
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-version mono">v2.4.1 · ML v1.3.0</div>
+      <div class="sidebar-uptime">↑ 99.94% uptime</div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-wrap">
+
+    <!-- ════ DASHBOARD PAGE ════ -->
+    <div class="page active" id="pg-dashboard">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Operations Dashboard</h1>
+          <p class="page-sub">Real-time fleet monitoring — <span id="dash-date"></span></p>
+        </div>
+        <div class="page-actions">
+          <select class="btn btn-outline btn-sm" style="font-family:var(--f-mono);font-size:11px" onchange="filterPlant(this.value)">
+            <option value="all">All Plants</option>
+            <option value="North Wind Farm">North Wind Farm</option>
+            <option value="Solar Array Alpha">Solar Array Alpha</option>
+            <option value="Hydro Station 3">Hydro Station 3</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="refreshDash()">⟳ Refresh Data</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('sched-modal')">+ Schedule Maintenance</button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid mb-6" id="kpi-row"></div>
+
+      <!-- Charts + Side Panel -->
+      <div class="grid-7-3 mb-5">
+        <div class="flex-col gap-4" style="display:flex;flex-direction:column;gap:20px">
+          <!-- Trend Chart -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Sensor Trends — Last 24 Hours</span>
+              <div class="flex gap-2">
+                <span class="tag">TEMP</span><span class="tag">VIBRATION</span><span class="tag">LOAD</span>
+              </div>
+            </div>
+            <div class="card-body"><canvas id="trendChart" height="200"></canvas></div>
+          </div>
+          <!-- Equipment Table -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Equipment Status Overview</span>
+              <button class="btn btn-outline btn-xs" onclick="goPage('equipment',document.getElementById('nl-equipment'))">View All →</button>
+            </div>
+            <div class="tbl-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th><th>Equipment Name</th><th>Location</th><th>Status</th>
+                    <th>Risk Score</th><th>Temp (°C)</th><th>Vibration</th><th>Load</th><th>Last Read</th>
+                  </tr>
+                </thead>
+                <tbody id="dash-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="flex-col" style="display:flex;flex-direction:column;gap:16px">
+          <!-- Alerts -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Active Alerts</span>
+              <span class="badge badge-critical">6</span>
+            </div>
+            <div class="card-body" style="padding:12px 16px">
+              <div class="alert-list" id="alerts-list"></div>
+            </div>
+          </div>
+          <!-- Risk Donut -->
+          <div class="card">
+            <div class="card-header"><span class="card-title">Risk Distribution</span></div>
+            <div class="card-body center"><canvas id="riskDonut" height="190" style="max-height:190px"></canvas></div>
+          </div>
+          <!-- Upcoming Maint -->
+          <div class="card">
+            <div class="card-header"><span class="card-title">Upcoming Maintenance</span></div>
+            <div class="card-body" style="padding:10px 16px" id="upcoming-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ EQUIPMENT LIST PAGE ════ -->
+    <div class="page" id="pg-equipment">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Equipment Management</h1>
+          <p class="page-sub">Monitor and manage all 47 assets across 3 plants</p>
+        </div>
+        <div class="page-actions">
+          <input class="btn btn-outline btn-sm" style="min-width:220px;font-size:13px;padding:8px 14px" placeholder="🔍 Search equipment..." oninput="filterEq(this.value)" id="eq-search">
+          <select class="btn btn-outline btn-sm" style="font-family:var(--f-mono);font-size:11px" onchange="filterEqStatus(this.value)" id="eq-status-filter">
+            <option value="all">All Status</option>
+            <option value="healthy">Healthy</option>
+            <option value="warning">Warning</option>
+            <option value="critical">Critical</option>
+          </select>
+          <select class="btn btn-outline btn-sm" style="font-family:var(--f-mono);font-size:11px" onchange="filterEqType(this.value)">
+            <option value="all">All Types</option>
+            <option value="Wind Turbine">Wind Turbines</option>
+            <option value="Solar Inverter">Solar Inverters</option>
+            <option value="Hydro Generator">Hydro Generators</option>
+            <option value="Transformer">Transformers</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="openModal('add-eq-modal')">+ Add Equipment</button>
+        </div>
+      </div>
+      <div class="eq-grid" id="eq-grid"></div>
+    </div>
+
+    <!-- ════ EQUIPMENT DETAIL PAGE ════ -->
+    <div class="page" id="pg-eq-detail">
+      <div class="page-head">
+        <button class="btn btn-outline btn-sm" onclick="goPage('equipment',document.getElementById('nl-equipment'))">← Back to Equipment</button>
+        <div class="page-actions">
+          <button class="btn btn-outline btn-sm" onclick="runPred(currentEq)">🤖 Run ML Prediction</button>
+          <button class="btn btn-primary btn-sm" onclick="openSchedModal(currentEq)">🔧 Schedule Maintenance</button>
+        </div>
+      </div>
+      <div class="card mb-5" id="eq-detail-hero"></div>
+      <div class="grid-2 mb-5">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Sensor History — 7 Days</span></div>
+          <div class="card-body"><canvas id="sensorHistChart" height="210"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Risk Score Trend</span></div>
+          <div class="card-body"><canvas id="riskHistChart" height="210"></canvas></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card" id="pred-panel">
+          <div class="card-header"><span class="card-title">ML Prediction Engine</span><span class="tag" id="pred-ts">NOT RUN</span></div>
+          <div class="card-body">
+            <div class="empty-state"><div class="es-icon">🤖</div><p>Click "Run ML Prediction" to generate analysis</p></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Maintenance History</span></div>
+          <div class="card-body" id="maint-timeline"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ PREDICTIONS PAGE ════ -->
+    <div class="page" id="pg-predictions">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">ML Predictions</h1>
+          <p class="page-sub">AI-powered failure detection across all equipment</p>
+        </div>
+        <div class="page-actions">
+          <span class="tag" id="pred-page-ts">Last run: —</span>
+          <button class="btn btn-primary btn-sm" onclick="runAllPreds()">🤖 Run All Predictions</button>
+        </div>
+      </div>
+      <div class="kpi-grid mb-6" style="grid-template-columns:repeat(4,1fr)" id="pred-kpi-row"></div>
+      <div class="grid-6-4 mb-5">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Prediction Results</span></div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>Equipment</th><th>Risk Score</th><th>Risk Level</th>
+                <th>Predicted Failure</th><th>Remaining Life</th>
+                <th>Primary Issue</th><th>Action</th>
+              </tr></thead>
+              <tbody id="pred-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Risk Factor Radar</span></div>
+          <div class="card-body center"><canvas id="radarChart" height="260" style="max-height:260px"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Model Explainability</span><span class="tag">Weighted Multi-Factor Scoring</span></div>
+        <div class="card-body">
+          <div class="grid-2">
+            <div>
+              <p style="font-size:13px;color:var(--c-text2);line-height:1.7;margin-bottom:16px">
+                The TerraGrid ML model uses a weighted risk scoring algorithm based on real-time sensor analysis, equipment age, and degradation trend detection. Each factor contributes a percentage to the final 0–100 risk score.
+              </p>
+              <div class="explain-row"><span class="er-icon">🌡️</span><div><div class="er-title">Temperature Factor (35% weight)</div><div class="er-desc">Sustained temperatures above the 55°C baseline are normalised against the 100°C danger threshold. Values exceeding 85°C flag potential bearing or insulation failure.</div></div></div>
+              <div class="explain-row"><span class="er-icon">📳</span><div><div class="er-title">Vibration Factor (40% weight)</div><div class="er-desc">The highest-weighted factor. Excessive vibration indicates bearing wear, mechanical imbalance, or structural fatigue. The model also detects upward trends to catch accelerating degradation early.</div></div></div>
+              <div class="explain-row"><span class="er-icon">⚡</span><div><div class="er-title">Load Factor (25% weight)</div><div class="er-desc">Prolonged operation above 85% capacity generates thermal stress and accelerates component wear. Sustained overloading adds directly to the risk score.</div></div></div>
+              <div class="explain-row"><span class="er-icon">📅</span><div><div class="er-title">Age Penalty (+0–20 pts)</div><div class="er-desc">Equipment degrades with age. The model adds 2.5 risk points per year of service, capped at 20 points, reflecting manufacturer lifecycle data.</div></div></div>
+            </div>
+            <div><canvas id="factorBar" height="320" style="max-height:320px"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ MAINTENANCE PAGE ════ -->
+    <div class="page" id="pg-maintenance">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Maintenance Management</h1>
+          <p class="page-sub">Schedule, track, and manage all maintenance operations</p>
+        </div>
+        <div class="page-actions">
+          <select class="btn btn-outline btn-sm" style="font-family:var(--f-mono);font-size:11px" onchange="filterMaintStatus(this.value)">
+            <option value="all">All Status</option>
+            <option value="Scheduled">Scheduled</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+            <option value="Overdue">Overdue</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="openModal('sched-modal')">+ Schedule Maintenance</button>
+        </div>
+      </div>
+      <div class="grid-4 mb-5" id="maint-kpi-row"></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Maintenance Log</span></div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Equipment</th><th>Issue</th><th>Technician</th><th>Type</th><th>Status</th><th>Cost</th></tr></thead>
+              <tbody id="maint-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="flex-col" style="display:flex;flex-direction:column;gap:16px">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Completion Rate</span></div>
+            <div class="card-body center"><canvas id="maintDonut" height="200" style="max-height:200px"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Upcoming This Month</span></div>
+            <div class="card-body" style="padding:10px 16px" id="maint-upcoming-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ REPORTS PAGE ════ -->
+    <div class="page" id="pg-reports">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Reports & Analytics</h1>
+          <p class="page-sub">Generate and download operational reports</p>
+        </div>
+      </div>
+      <div class="grid-2 mb-5">
+        <div>
+          <div class="card mb-5">
+            <div class="card-header"><span class="card-title">Generate Reports</span></div>
+            <div class="card-body">
+              <div class="report-row" onclick="genReport('fleet')"><div class="report-row-icon">📊</div><div><h4>Fleet Health Summary</h4><p>Equipment status, risk scores, sensor readings, efficiency metrics</p></div><div class="rr-type">CSV</div></div>
+              <div class="report-row" onclick="genReport('maintenance')"><div class="report-row-icon">🔧</div><div><h4>Maintenance History</h4><p>All work orders, technician logs, costs, and status</p></div><div class="rr-type">CSV</div></div>
+              <div class="report-row" onclick="genReport('predictions')"><div class="report-row-icon">🤖</div><div><h4>ML Prediction Report</h4><p>Risk scores, failure dates, remaining life, recommendations</p></div><div class="rr-type">CSV</div></div>
+              <div class="report-row" onclick="genReport('sensor')"><div class="report-row-icon">📡</div><div><h4>Sensor Data Export</h4><p>Raw 30-day sensor readings for all equipment</p></div><div class="rr-type">CSV</div></div>
+              <div class="report-row" onclick="genReport('incidents')"><div class="report-row-icon">⚠️</div><div><h4>Incident Report</h4><p>All critical alerts, anomaly detections, and resolutions</p></div><div class="rr-type">CSV</div></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card mb-5">
+            <div class="card-header"><span class="card-title">Performance — 7 Month Trend</span></div>
+            <div class="card-body"><canvas id="perfChart" height="220"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Costs vs. Savings Estimate</span></div>
+            <div class="card-body"><canvas id="costChart" height="200"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Fleet Efficiency by Plant</span></div>
+        <div class="card-body"><canvas id="plantBarChart" height="180"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ════ USERS PAGE ════ -->
+    <div class="page" id="pg-users">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">User Management</h1>
+          <p class="page-sub">Manage system access, roles, and permissions</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-primary btn-sm" onclick="openModal('add-user-modal')">+ Add User</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">System Users</span><span class="tag" id="users-count-tag">3 Total</span></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Last Login</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="users-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ SETTINGS PAGE ════ -->
+    <div class="page" id="pg-settings">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">System Settings</h1>
+          <p class="page-sub">Configure thresholds, notifications, and system preferences</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-primary btn-sm" onclick="saveSettings()">Save All Settings</button>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <div class="card mb-5">
+            <div class="card-header"><span class="card-title">Alert Thresholds</span></div>
+            <div class="card-body">
+              <div class="field"><label>Temperature Warning Threshold (°C)</label><input type="number" value="80" class="settings-input"></div>
+              <div class="field"><label>Temperature Critical Threshold (°C)</label><input type="number" value="95" class="settings-input"></div>
+              <div class="field"><label>Vibration Warning (mm/s)</label><input type="number" value="7.5" step="0.1" class="settings-input"></div>
+              <div class="field"><label>Vibration Critical (mm/s)</label><input type="number" value="10.0" step="0.1" class="settings-input"></div>
+              <div class="field"><label>Risk Score Alert Trigger (0–100)</label><input type="range" value="70" min="0" max="100" oninput="document.getElementById('risk-th-val').textContent=this.value"><span class="mono" id="risk-th-val" style="font-size:14px;color:var(--c-teal)">70</span></div>
+              <div class="field"><label>Load Utilisation Warning (%)</label><input type="number" value="85" class="settings-input"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">ML Model Configuration</span></div>
+            <div class="card-body">
+              <div class="setting-row"><div><div class="setting-label">Temperature Weight</div><div class="setting-sub">Contribution to risk score</div></div><span class="mono" style="color:var(--c-teal)">35%</span></div>
+              <div class="setting-row"><div><div class="setting-label">Vibration Weight</div><div class="setting-sub">Highest impact factor</div></div><span class="mono" style="color:var(--c-teal)">40%</span></div>
+              <div class="setting-row"><div><div class="setting-label">Load Weight</div><div class="setting-sub">Thermal stress factor</div></div><span class="mono" style="color:var(--c-teal)">25%</span></div>
+              <div class="setting-row"><div><div class="setting-label">Auto-Predict Schedule</div><div class="setting-sub">Run predictions automatically</div></div><span class="mono" style="color:var(--c-green)">EVERY 6h</span></div>
+              <div class="setting-row"><div><div class="setting-label">Trend Analysis Window</div><div class="setting-sub">Hours of data analysed</div></div><span class="mono" style="color:var(--c-teal)">48h</span></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card mb-5">
+            <div class="card-header"><span class="card-title">System Information</span></div>
+            <div class="card-body">
+              <div class="info-row"><span class="muted">System Version</span><span class="mono">v2.4.1</span></div>
+              <div class="info-row"><span class="muted">ML Model Version</span><span class="mono">1.3.0</span></div>
+              <div class="info-row"><span class="muted">Database Size</span><span class="mono">47.3 GB</span></div>
+              <div class="info-row"><span class="muted">Active Sensors</span><span class="mono">141</span></div>
+              <div class="info-row"><span class="muted">Data Points (30d)</span><span class="mono">1,247,832</span></div>
+              <div class="info-row"><span class="muted">Last Model Retrain</span><span class="mono">2026-02-15</span></div>
+              <div class="info-row"><span class="muted">Model Accuracy (RMSE)</span><span class="mono" style="color:var(--c-green)">94.7%</span></div>
+              <div class="info-row"><span class="muted">System Uptime</span><span class="mono" style="color:var(--c-green)">99.94%</span></div>
+              <div class="info-row"><span class="muted">API Endpoints</span><span class="mono">24 active</span></div>
+              <div class="info-row"><span class="muted">JWT Token Expiry</span><span class="mono">24 hours</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Notification Settings</span></div>
+            <div class="card-body">
+              <div class="setting-row"><div><div class="setting-label">Email Alerts</div><div class="setting-sub"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7916090a390d1c0b0b181e0b101d571a1614">[email&#160;protected]</a></div></div><span class="badge badge-healthy">ENABLED</span></div>
+              <div class="setting-row"><div><div class="setting-label">SMS Alerts</div><div class="setting-sub">Critical failures only</div></div><span class="badge badge-healthy">ENABLED</span></div>
+              <div class="setting-row"><div><div class="setting-label">Slack Integration</div><div class="setting-sub">#maintenance-alerts</div></div><span class="badge badge-healthy">CONNECTED</span></div>
+              <div class="setting-row"><div><div class="setting-label">Daily Digest</div><div class="setting-sub">06:00 UTC each morning</div></div><span class="badge badge-healthy">ACTIVE</span></div>
+              <div class="setting-row"><div><div class="setting-label">Auto Work Orders</div><div class="setting-sub">On risk score > 75</div></div><span class="badge badge-warning">BETA</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     MODALS
+════════════════════════════════════════════════ -->
+
+<!-- Schedule Maintenance Modal -->
+<div class="modal-bg" id="sched-modal">
+  <div class="modal">
+    <h2 class="modal-title">Schedule Maintenance</h2>
+    <div class="form-row">
+      <div class="field"><label>Equipment</label>
+        <select id="sm-eq" class="settings-input w100" style="width:100%">
+          <option value="">Select equipment...</option>
+        </select>
+      </div>
+      <div class="field"><label>Scheduled Date</label><input type="date" id="sm-date" class="settings-input w100" style="width:100%"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Assign Technician</label>
+        <select id="sm-tech" class="settings-input w100" style="width:100%">
+          <option>James Wilson</option><option>Maria Chen</option><option>Alex Kumar</option><option>Sarah Thompson</option>
+        </select>
+      </div>
+      <div class="field"><label>Priority</label>
+        <select id="sm-pri" class="settings-input w100" style="width:100%">
+          <option>Critical</option><option selected>High</option><option>Medium</option><option>Low</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Maintenance Type</label>
+      <select id="sm-type" class="settings-input w100" style="width:100%">
+        <option>Preventive Maintenance</option><option>Corrective Maintenance</option>
+        <option>Condition-Based Maintenance</option><option>Emergency Repair</option><option>Routine Inspection</option>
+      </select>
+    </div>
+    <div class="field"><label>Issue Description</label>
+      <textarea id="sm-issue" rows="3" style="width:100%;background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px 14px;color:var(--c-text);font-family:var(--f-body);font-size:14px;outline:none;resize:vertical" placeholder="Describe the issue or scheduled task..."></textarea>
+    </div>
+    <div class="field"><label>Estimated Cost (USD)</label><input type="number" id="sm-cost" style="width:100%;background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px 14px;color:var(--c-text);font-family:var(--f-body);font-size:14px;outline:none" placeholder="Optional"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('sched-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMaint()">Schedule Work Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Equipment Modal -->
+<div class="modal-bg" id="add-eq-modal">
+  <div class="modal">
+    <h2 class="modal-title">Register New Equipment</h2>
+    <div class="form-row">
+      <div class="field"><label>Equipment ID</label><input type="text" id="aeq-id" style="width:100%;background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px 14px;color:var(--c-text);font-family:var(--f-body);font-size:14px;outline:none" placeholder="e.g. WTG-048"></div>
+      <div class="field"><label>Display Name</label><input type="text" id="aeq-name" style="width:100%;background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px 14px;color:var(--c-text);font-family:var(--f-body);font-size:14px;outline:none" placeholder="Wind Turbine Zeta"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Equipment Type</label>
+        <select id="aeq-type" style="width:100%;background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px 14px;color:var(--c-text);font-family:var(--f-body);font-size:14px;outline:none">
+          <option>Wind Turbine</option><option>Solar Inverter</option><option>Hydro Generator</option><option>Transformer</option><option>Battery Storage</option>
+        </select>
+      </div>
+      <div class="field"><label>Plant Location</label>
+        <select id="aeq-loc" style="width:100%;background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px 14px;color:var(--c-text);font-family:var(--f-body);font-size:14px;outline:none">
+          <option>North Wind Farm</option><option>Solar Array Alpha</option><option>Hydro Station 3</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Install Date</label><input type="date" id="aeq-date" style="width:100%;background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px 14px;color:var(--c-text);font-family:var(--f-body);font-size:14px;outline:none"></div>
+      <div class="field"><label>Manufacturer</label><input type="text" id="aeq-mfr" style="width:100%;background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px 14px;color:var(--c-text);font-family:var(--f-body);font-size:14px;outline:none" placeholder="e.g. Vestas"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('add-eq-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addEquipment()">Register Equipment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal-bg" id="add-user-modal">
+  <div class="modal">
+    <h2 class="modal-title">Add New User</h2>
+    <p style="font-size:13px;color:var(--c-text2);margin-bottom:20px;line-height:1.6">
+      Create a real account for your team member. They will use these credentials to log in.
+    </p>
+    <div class="form-row">
+      <div class="field"><label>Full Name</label><input type="text" id="au-name" style="width:100%;background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px 14px;color:var(--c-text);font-family:var(--f-body);font-size:14px;outline:none" placeholder="John Doe"></div>
+      <div class="field"><label>Email Address</label><input type="email" id="au-email" style="width:100%;background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px 14px;color:var(--c-text);font-family:var(--f-body);font-size:14px;outline:none" placeholder="john@yourcompany.com"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Role</label>
+        <select id="au-role" style="width:100%;background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px 14px;color:var(--c-text);font-family:var(--f-body);font-size:14px;outline:none">
+          <option value="Engineer">Engineer</option><option value="Manager">Manager</option><option value="Admin">Admin</option>
+        </select>
+      </div>
+      <div class="field"><label>Password (min. 8 chars)</label><input type="password" id="au-pw" style="width:100%;background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px 14px;color:var(--c-text);font-family:var(--f-body);font-size:14px;outline:none" placeholder="Set a strong password"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('add-user-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addUser()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal-bg" id="edit-user-modal">
+  <div class="modal">
+    <h2 class="modal-title">Edit User</h2>
+    <input type="hidden" id="eu-id">
+    <div class="form-row">
+      <div class="field"><label>Full Name</label><input type="text" id="eu-name" style="width:100%;background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px 14px;color:var(--c-text);font-family:var(--f-body);font-size:14px;outline:none"></div>
+      <div class="field"><label>Email Address</label><input type="email" id="eu-email" style="width:100%;background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px 14px;color:var(--c-text);font-family:var(--f-body);font-size:14px;outline:none"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Role</label>
+        <select id="eu-role" style="width:100%;background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px 14px;color:var(--c-text);font-family:var(--f-body);font-size:14px;outline:none">
+          <option value="Engineer">Engineer</option><option value="Manager">Manager</option><option value="Admin">Admin</option>
+        </select>
+      </div>
+      <div class="field"><label>New Password (leave blank to keep current)</label><input type="password" id="eu-pw" style="width:100%;background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px 14px;color:var(--c-text);font-family:var(--f-body);font-size:14px;outline:none" placeholder="Leave blank to keep current"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('edit-user-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditUser()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+'use strict';
+/* ════════════════════════════════════════════════════
+   DATA STORE — Simulated Backend Database
+════════════════════════════════════════════════════ */
+const DEFAULT_PW = 'terragrid@2026';
+
+// Load any saved password overrides from localStorage
+function loadSavedPasswords() {
+  try {
+    const saved = localStorage.getItem('tg_user_passwords');
+    if (saved) {
+      const overrides = JSON.parse(saved);
+      DB.users.forEach(u => {
+        if (overrides[u.email]) {
+          u.pw = overrides[u.email].pw;
+          u.isDefault = overrides[u.email].isDefault;
+          u.name = overrides[u.email].name || u.name;
+        }
+      });
+    }
+    // Load admin-added users
+    const extraUsers = localStorage.getItem('tg_extra_users');
+    if (extraUsers) {
+      const extras = JSON.parse(extraUsers);
+      extras.forEach(eu => {
+        if (!DB.users.find(u => u.email === eu.email)) {
+          DB.users.push(eu);
+        }
+      });
+    }
+  } catch(e) {}
+}
+
+function savePasswordOverride(user) {
+  try {
+    const saved = JSON.parse(localStorage.getItem('tg_user_passwords') || '{}');
+    saved[user.email] = { pw: user.pw, isDefault: user.isDefault, name: user.name };
+    localStorage.setItem('tg_user_passwords', JSON.stringify(saved));
+  } catch(e) {}
+}
+
+function saveExtraUsers() {
+  try {
+    // Only save non-default-role users (ones admin added)
+    const defaultEmails = ['admin@terragrid.com','engineer@terragrid.com','manager@terragrid.com'];
+    const extras = DB.users.filter(u => !defaultEmails.includes(u.email));
+    localStorage.setItem('tg_extra_users', JSON.stringify(extras));
+  } catch(e) {}
+}
+
+const DB = {
+  users: [
+    {id:1, name:'Admin',    email:'admin@terragrid.com',    pw:'terragrid@2026', role:'Admin',    lastLogin:'Never', active:true, isDefault:true},
+    {id:2, name:'Engineer', email:'engineer@terragrid.com', pw:'terragrid@2026', role:'Engineer', lastLogin:'Never', active:true, isDefault:true},
+    {id:3, name:'Manager',  email:'manager@terragrid.com',  pw:'terragrid@2026', role:'Manager',  lastLogin:'Never', active:true, isDefault:true},
+  ],
+  equipment: [
+    {id:'WTG-001',name:'Wind Turbine Alpha',       type:'Wind Turbine',   loc:'North Wind Farm',  install:'2020-03-15',status:'critical',temp:98.4,vib:9.2, load:94,eff:71,mfr:'Vestas',model:'V150-4.5'},
+    {id:'WTG-002',name:'Wind Turbine Beta',        type:'Wind Turbine',   loc:'North Wind Farm',  install:'2020-03-15',status:'warning', temp:83.1,vib:6.8, load:82,eff:84,mfr:'Vestas',model:'V150-4.5'},
+    {id:'WTG-003',name:'Wind Turbine Gamma',       type:'Wind Turbine',   loc:'North Wind Farm',  install:'2021-06-10',status:'healthy', temp:72.3,vib:3.2, load:78,eff:91,mfr:'Siemens Gamesa',model:'SG 5.0-145'},
+    {id:'WTG-004',name:'Wind Turbine Delta',       type:'Wind Turbine',   loc:'North Wind Farm',  install:'2021-06-10',status:'healthy', temp:69.8,vib:2.9, load:75,eff:93,mfr:'Siemens Gamesa',model:'SG 5.0-145'},
+    {id:'WTG-005',name:'Wind Turbine Epsilon',     type:'Wind Turbine',   loc:'North Wind Farm',  install:'2022-01-20',status:'warning', temp:81.7,vib:6.1, load:88,eff:82,mfr:'GE Renewable',model:'Haliade-X'},
+    {id:'PV-001', name:'Solar Inverter Unit 1',    type:'Solar Inverter', loc:'Solar Array Alpha', install:'2019-07-01',status:'critical',temp:91.2,vib:1.2, load:98,eff:68,mfr:'SMA Solar',model:'SC 2750-EV'},
+    {id:'PV-002', name:'Solar Inverter Unit 2',    type:'Solar Inverter', loc:'Solar Array Alpha', install:'2019-07-01',status:'healthy', temp:65.4,vib:0.8, load:72,eff:94,mfr:'SMA Solar',model:'SC 2750-EV'},
+    {id:'PV-003', name:'Solar Inverter Unit 3',    type:'Solar Inverter', loc:'Solar Array Alpha', install:'2020-11-15',status:'healthy', temp:63.1,vib:0.7, load:70,eff:95,mfr:'ABB',model:'PVS-175-TL'},
+    {id:'HYD-001',name:'Hydro Generator Main',     type:'Hydro Generator',loc:'Hydro Station 3',  install:'2018-04-22',status:'critical',temp:87.6,vib:8.4, load:91,eff:73,mfr:'Andritz',model:'Francis F400'},
+    {id:'HYD-002',name:'Hydro Generator Secondary',type:'Hydro Generator',loc:'Hydro Station 3',  install:'2018-04-22',status:'warning', temp:79.3,vib:5.7, load:84,eff:85,mfr:'Andritz',model:'Francis F400'},
+    {id:'TRF-001',name:'Main Transformer T1',      type:'Transformer',    loc:'North Wind Farm',   install:'2017-09-10',status:'healthy', temp:58.7,vib:1.1, load:62,eff:97,mfr:'ABB',model:'PowerTX-400kV'},
+    {id:'TRF-002',name:'Step-Up Transformer T2',   type:'Transformer',    loc:'Solar Array Alpha', install:'2019-07-01',status:'healthy', temp:61.2,vib:0.9, load:68,eff:96,mfr:'Siemens',model:'GEAFOL'},
+  ],
+  maintenance: [
+    {id:1,eqId:'WTG-001',date:'2026-02-18',issue:'Abnormal vibration in gearbox',action:'Bearing replacement and lubrication',tech:'James Wilson',type:'Corrective',status:'Completed',cost:4500},
+    {id:2,eqId:'PV-001', date:'2026-02-15',issue:'Overheating inverter modules',action:'Cooling fan replaced, thermal paste applied',tech:'Maria Chen',type:'Corrective',status:'Completed',cost:1200},
+    {id:3,eqId:'HYD-001',date:'2026-02-22',issue:'Blade cavitation detected',action:'Full inspection and seal replacement',tech:'James Wilson',type:'Condition-Based',status:'Scheduled',cost:null},
+    {id:4,eqId:'WTG-002',date:'2026-02-25',issue:'Periodic preventive maintenance',action:'Oil change, blade inspection, pitch calibration',tech:'Alex Kumar',type:'Preventive',status:'Scheduled',cost:null},
+    {id:5,eqId:'WTG-001',date:'2025-12-10',issue:'Pitch control malfunction',action:'Actuator recalibration and firmware update',tech:'James Wilson',type:'Corrective',status:'Completed',cost:2100},
+    {id:6,eqId:'HYD-001',date:'2025-11-20',issue:'Primary seal degradation',action:'Primary shaft seal replaced',tech:'Sarah Thompson',type:'Corrective',status:'Completed',cost:3800},
+    {id:7,eqId:'PV-001', date:'2025-10-05',issue:'String disconnect fault row 4',action:'Junction box repaired',tech:'Maria Chen',type:'Corrective',status:'Completed',cost:650},
+    {id:8,eqId:'WTG-003',date:'2025-09-15',issue:'Annual inspection',action:'Full inspection — no issues found',tech:'Alex Kumar',type:'Preventive',status:'Completed',cost:800},
+  ],
+};
+
+// Apply any saved passwords/users from localStorage immediately
+loadSavedPasswords();
+
+/* ════════════════════════════════════════════════════
+   ML PREDICTION ENGINE
+════════════════════════════════════════════════════ */
+function mlPredict(eq) {
+  const TEMP_BASE=55, TEMP_MAX=100, VIB_MAX=15, LOAD_MIN=50;
+  const W = {temp:.35, vib:.40, load:.25};
+
+  const tN = Math.min(100, Math.max(0,(eq.temp-TEMP_BASE)/(TEMP_MAX-TEMP_BASE)*100));
+  const vN = Math.min(100,(eq.vib/VIB_MAX)*100);
+  const lN = Math.min(100, Math.max(0,(eq.load-LOAD_MIN)/(100-LOAD_MIN)*100));
+
+  const base = tN*W.temp + vN*W.vib + lN*W.load;
+  const age  = Math.min(20,(2026-new Date(eq.install).getFullYear())*2.5);
+  const trend = eq.status==='critical'?5:0;
+  const risk  = Math.min(99, Math.round(base+age+trend));
+
+  const rul   = Math.max(7, Math.round(200*(1-risk/100)));
+  const fd    = new Date(); fd.setDate(fd.getDate()+rul);
+
+  const factors=[];
+  if(tN>60) factors.push(`🌡️ High temperature (${eq.temp.toFixed(1)}°C) — ${Math.round(tN)}% above safe baseline`);
+  if(vN>50) factors.push(`📳 Elevated vibration (${eq.vib} mm/s) — bearing wear indicator`);
+  if(lN>70) factors.push(`⚡ High load utilisation (${eq.load}%) — thermal stress accumulation`);
+  if(age>10) factors.push(`📅 Equipment age (${(2026-new Date(eq.install).getFullYear())}y) — accelerated degradation zone`);
+  if(eq.status==='critical') factors.push(`🔴 Current critical status — active failure signatures detected`);
+
+  let rec;
+  if(risk>=75) rec='IMMEDIATE ACTION: Schedule emergency maintenance within 48 hours. Risk of imminent failure is high. Consider reducing load to 80% immediately.';
+  else if(risk>=50) rec='URGENT: Plan maintenance within 2 weeks. Monitor sensor readings every 4 hours. Reduce load if possible.';
+  else if(risk>=30) rec='ADVISORY: Include in next scheduled maintenance cycle (within 60 days). Continue normal monitoring intervals.';
+  else rec='NOMINAL: Equipment within normal parameters. Maintain standard 30-day inspection schedule.';
+
+  return {
+    risk, rul, failDate: fd.toISOString().split('T')[0], rec, factors,
+    contrib: {temp:Math.round(tN*W.temp), vib:Math.round(vN*W.vib), load:Math.round(lN*W.load), age:Math.round(age), trend},
+  };
+}
+
+/* ════════════════════════════════════════════════════
+   AUTH LOGIC
+════════════════════════════════════════════════════ */
+let SESSION = null;
+let currentEq = null;
+let charts = {};
+let eqFilters = {search:'', status:'all', type:'all'};
+let eqTypeFilter = 'all';
+
+function doLogin() {
+  const email = document.getElementById('l-email').value.trim().toLowerCase();
+  const pw    = document.getElementById('l-pass').value;
+  const err   = document.getElementById('auth-err');
+
+  // Find user in DB
+  const u = DB.users.find(u => u.email.toLowerCase() === email && u.active);
+  if (u && u.pw === pw) {
+    err.style.display='none';
+    u.lastLogin = new Date().toLocaleString('en-US',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    SESSION = {email: u.email, role: u.role, name: u.name, userId: u.id, token:`jwt_${btoa(u.email)}_${Date.now()}`};
+    enterApp();
+    // Force password change if still using default
+    if (u.isDefault) {
+      setTimeout(()=>{
+        document.getElementById('cp-reason-msg') && (document.getElementById('cp-reason-msg').style.display='block');
+        document.getElementById('cp-cancel-btn').style.display='none';
+        document.getElementById('change-pw-modal').classList.add('open');
+      }, 600);
+    }
+  } else if (DB.users.find(u => u.email.toLowerCase() === email && !u.active)) {
+    err.textContent = 'Your account is inactive. Contact your administrator.';
+    err.style.display='block';
+  } else {
+    err.textContent = 'Invalid email or password. Please try again.';
+    err.style.display='block';
+  }
+}
+
+function doChangePassword() {
+  const currentPw = document.getElementById('cp-current').value;
+  const newPw     = document.getElementById('cp-new').value;
+  const confirmPw = document.getElementById('cp-confirm').value;
+  const errEl     = document.getElementById('cp-err');
+
+  const u = DB.users.find(u => u.id === SESSION.userId);
+  if (!u) return;
+
+  if (u.pw !== currentPw) {
+    errEl.textContent = 'Current password is incorrect.';
+    errEl.style.display='block'; return;
+  }
+  if (newPw.length < 8) {
+    errEl.textContent = 'New password must be at least 8 characters.';
+    errEl.style.display='block'; return;
+  }
+  if (newPw !== confirmPw) {
+    errEl.textContent = 'New passwords do not match.';
+    errEl.style.display='block'; return;
+  }
+  if (newPw === 'terragrid@2026') {
+    errEl.textContent = 'Please choose a different password from the default.';
+    errEl.style.display='block'; return;
+  }
+
+  u.pw = newPw;
+  u.isDefault = false;
+  savePasswordOverride(u);  // persist so it survives page refresh
+  errEl.style.display='none';
+  document.getElementById('cp-current').value='';
+  document.getElementById('cp-new').value='';
+  document.getElementById('cp-confirm').value='';
+  closeModal('change-pw-modal');
+  toast(`Password updated successfully for ${u.name}`, 'success');
+}
+
+function openChangePassword() {
+  document.getElementById('cp-err').style.display='none';
+  document.getElementById('cp-current').value='';
+  document.getElementById('cp-new').value='';
+  document.getElementById('cp-confirm').value='';
+  document.getElementById('cp-cancel-btn').style.display='inline-flex';
+  const reason = document.getElementById('change-pw-reason');
+  if(reason) reason.textContent = 'Update your account password. Choose a strong, unique password.';
+  openModal('change-pw-modal');
+}
+
+function enterApp() {
+  document.getElementById('auth').style.display='none';
+  const app = document.getElementById('app');
+  app.classList.add('show');
+
+  document.getElementById('uw-name').textContent   = SESSION.name;
+  document.getElementById('uw-role').textContent   = SESSION.role.toUpperCase();
+  document.getElementById('uw-avatar').textContent = SESSION.name[0];
+
+  // Role-based UI
+  if (SESSION.role==='Engineer') document.getElementById('admin-group').style.display='none';
+  else document.getElementById('admin-group').style.display='';
+  if (SESSION.role==='Manager')  {
+    document.getElementById('nl-users').style.display='none';
+  } else {
+    document.getElementById('nl-users').style.display='';
+  }
+
+  startClock();
+  populateSchedModal();
+  initDashboard();
+}
+
+function doLogout() {
+  SESSION=null; currentEq=null;
+  Object.values(charts).forEach(c=>{try{c.destroy();}catch(e){}});
+  charts={};
+  document.getElementById('l-email').value='';
+  document.getElementById('l-pass').value='';
+  document.getElementById('auth-err').style.display='none';
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('auth').style.display='flex';
+}
+
+/* ════════════════════════════════════════════════════
+   CLOCK
+════════════════════════════════════════════════════ */
+function startClock() {
+  const tick = ()=>{
+    const now = new Date();
+    document.getElementById('sys-clock').textContent = now.toLocaleString('en-US',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const d = document.getElementById('dash-date');
+    if(d) d.textContent = now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  };
+  tick(); setInterval(tick,1000);
+}
+
+/* ════════════════════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════════════════════ */
+function goPage(name, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(n=>n.classList.remove('active'));
+  document.getElementById('pg-'+name).classList.add('active');
+  if(el) el.classList.add('active');
+  else { const nl=document.getElementById('nl-'+name); if(nl) nl.classList.add('active'); }
+  // Page init
+  const init={equipment:()=>renderEqGrid(),predictions:()=>initPredictions(),maintenance:()=>initMaintenance(),reports:()=>initReports(),users:()=>renderUsers()};
+  if(init[name]) init[name]();
+}
+
+/* ════════════════════════════════════════════════════
+   DASHBOARD
+════════════════════════════════════════════════════ */
+function initDashboard() {
+  renderKPIs();
+  renderDashTable();
+  renderAlerts();
+  renderUpcoming();
+  buildTrendChart();
+  buildRiskDonut();
+}
+
+function refreshDash() {
+  DB.equipment.forEach(eq=>{
+    eq.temp   += (Math.random()-.5)*3;
+    eq.vib    += (Math.random()-.5)*.4;
+    eq.load   = Math.max(50,Math.min(99,eq.load+(Math.random()-.5)*5));
+    eq.temp   = Math.max(50,Math.min(100,eq.temp));
+    eq.vib    = Math.max(.1,Math.min(12,eq.vib));
+  });
+  renderKPIs(); renderDashTable(); renderAlerts();
+  toast('Dashboard refreshed with latest sensor readings','success');
+}
+
+function filterPlant(val) { renderDashTable(val); }
+
+function renderKPIs() {
+  const total=DB.equipment.length;
+  const healthy=DB.equipment.filter(e=>e.status==='healthy').length;
+  const warning=DB.equipment.filter(e=>e.status==='warning').length;
+  const critical=DB.equipment.filter(e=>e.status==='critical').length;
+  const avgEff=Math.round(DB.equipment.reduce((a,e)=>a+e.eff,0)/total);
+  const kpis=[
+    {val:total,    label:'Total Equipment',  color:'var(--c-teal)',  icon:'⚙️',  change:'+3 this quarter', dir:'neu'},
+    {val:healthy,  label:'Healthy',          color:'var(--c-green)', icon:'✅',  change:`${Math.round(healthy/total*100)}% of fleet`, dir:'pos'},
+    {val:warning,  label:'Warning',          color:'var(--c-amber)', icon:'⚠️',  change:'+2 since yesterday', dir:'neg'},
+    {val:critical, label:'Critical',         color:'var(--c-red)',   icon:'🔴', change:'Immediate action required', dir:'neg'},
+    {val:avgEff+'%',label:'Avg Efficiency',  color:'var(--c-blue)',  icon:'📈', change:'↑ 4% vs last month', dir:'pos'},
+  ];
+  document.getElementById('kpi-row').innerHTML = kpis.map(k=>`
+    <div class="kpi-card" style="--kpi-color:${k.color}">
+      <div class="kpi-accent-bg"></div>
+      <div class="kpi-icon">${k.icon}</div>
+      <div class="kpi-val">${k.val}</div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-change ${k.dir==='neg'?'neg':k.dir==='neu'?'neu':''}">${k.change}</div>
+    </div>`).join('');
+}
+
+function renderDashTable(plantFilter='all') {
+  const eqs = plantFilter==='all' ? DB.equipment : DB.equipment.filter(e=>e.loc===plantFilter);
+  document.getElementById('dash-tbody').innerHTML = eqs.map(eq=>{
+    const p=mlPredict(eq);
+    const rc=p.risk>=75?'risk-high':p.risk>=50?'risk-med':'risk-low';
+    const tc=eq.temp>90?'var(--c-red)':eq.temp>80?'var(--c-amber)':'inherit';
+    const vc=eq.vib>7?'var(--c-red)':eq.vib>5?'var(--c-amber)':'inherit';
+    return `<tr class="clickable" onclick="openEqDetail('${eq.id}')">
+      <td class="mono" style="color:var(--c-teal);font-size:12px">${eq.id}</td>
+      <td style="font-weight:600">${eq.name}</td>
+      <td style="font-size:12px;color:var(--c-text2)">${eq.loc}</td>
+      <td>${badge(eq.status)}</td>
+      <td style="min-width:130px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="risk-bar" style="flex:1"><div class="risk-fill ${rc}" style="width:${p.risk}%"></div></div>
+          <span class="mono" style="font-size:12px;min-width:26px">${p.risk}</span>
+        </div>
+      </td>
+      <td class="mono" style="color:${tc};font-size:13px">${eq.temp.toFixed(1)}</td>
+      <td class="mono" style="color:${vc};font-size:13px">${eq.vib.toFixed(1)}</td>
+      <td class="mono" style="font-size:13px">${eq.load}%</td>
+      <td style="font-size:11px;color:var(--c-text3)">${rndTime()}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderAlerts() {
+  const alerts=[
+    {lvl:'cr',text:'WTG-001: Temperature 98.4°C — bearing failure imminent',time:'2 min ago'},
+    {lvl:'cr',text:'PV-001: Inverter overload at 98% capacity — shutdown risk',time:'8 min ago'},
+    {lvl:'cr',text:'HYD-001: Vibration 8.4 mm/s — cavitation detected in runner',time:'14 min ago'},
+    {lvl:'wn',text:'WTG-002: Vibration trending up 12% over past 72 hours',time:'1 hr ago'},
+    {lvl:'wn',text:'WTG-005: Sustained load above 88% for 18+ hours',time:'2 hr ago'},
+    {lvl:'in',text:'HYD-001 maintenance scheduled for Feb 22 — James Wilson assigned',time:'4 hr ago'},
+  ];
+  document.getElementById('alerts-list').innerHTML = alerts.map(a=>`
+    <div class="alert-item">
+      <div class="alert-dot ${a.lvl}"></div>
+      <div>
+        <div class="alert-text">${a.text}</div>
+        <div class="alert-meta">${a.time}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderUpcoming() {
+  const items=[
+    {eq:'HYD-001',date:'Feb 22',type:'Condition-Based',tech:'J. Wilson'},
+    {eq:'WTG-002',date:'Feb 25',type:'Preventive',    tech:'A. Kumar'},
+    {eq:'PV-001', date:'Mar 01',type:'Preventive',    tech:'M. Chen'},
+    {eq:'WTG-003',date:'Mar 10',type:'Inspection',    tech:'J. Wilson'},
+  ];
+  document.getElementById('upcoming-list').innerHTML = items.map(u=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(28,46,74,.5)">
+      <div style="background:var(--c-bg2);border:1px solid var(--c-border);border-radius:var(--r);padding:6px 10px;text-align:center;min-width:46px">
+        <div class="mono" style="font-size:9px;color:var(--c-teal)">${u.date.split(' ')[0].toUpperCase()}</div>
+        <div class="mono" style="font-size:17px;font-weight:700">${u.date.split(' ')[1]}</div>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:600">${u.eq}</div>
+        <div style="font-size:11px;color:var(--c-text2)">${u.type} · ${u.tech}</div>
+      </div>
+    </div>`).join('');
+}
+
+function buildTrendChart() {
+  if(charts.trend) charts.trend.destroy();
+  const lbs=Array.from({length:24},(_,i)=>`${String(i).padStart(2,'0')}:00`);
+  const ctx=document.getElementById('trendChart').getContext('2d');
+  charts.trend=new Chart(ctx,{
+    type:'line',
+    data:{labels:lbs,datasets:[
+      {label:'Temp (°C)',data:rnd(24,70,98),borderColor:'#ff6d00',backgroundColor:'rgba(255,109,0,.07)',tension:.4,borderWidth:2,pointRadius:0,fill:true},
+      {label:'Vibration (mm/s)',data:rnd(24,2,9),borderColor:'#00d4c8',backgroundColor:'rgba(0,212,200,.06)',tension:.4,borderWidth:2,pointRadius:0,fill:true,yAxisID:'y1'},
+      {label:'Load (%)',data:rnd(24,60,95),borderColor:'#00e676',backgroundColor:'rgba(0,230,118,.05)',tension:.4,borderWidth:2,pointRadius:0,fill:true,yAxisID:'y2'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{color:'#7a9ccc',font:{size:11},boxWidth:14,padding:16}}},
+      scales:{
+        x:{grid:{color:'rgba(28,46,74,.5)'},ticks:{color:'#3d5a82',font:{size:10},maxTicksLimit:8}},
+        y:{grid:{color:'rgba(28,46,74,.5)'},ticks:{color:'#3d5a82',font:{size:10}},title:{display:true,text:'Temp',color:'#ff6d00',font:{size:10}}},
+        y1:{position:'right',grid:{display:false},ticks:{color:'#3d5a82',font:{size:10}},title:{display:true,text:'Vib',color:'#00d4c8',font:{size:10}}},
+        y2:{position:'right',display:false},
+      }
+    }
+  });
+}
+
+function buildRiskDonut() {
+  if(charts.riskDonut) charts.riskDonut.destroy();
+  const h=DB.equipment.filter(e=>e.status==='healthy').length;
+  const w=DB.equipment.filter(e=>e.status==='warning').length;
+  const c=DB.equipment.filter(e=>e.status==='critical').length;
+  const ctx=document.getElementById('riskDonut').getContext('2d');
+  charts.riskDonut=new Chart(ctx,{
+    type:'doughnut',
+    data:{labels:['Critical','Warning','Healthy'],datasets:[{data:[c,w,h],backgroundColor:['rgba(255,23,68,.75)','rgba(255,171,0,.75)','rgba(0,230,118,.75)'],borderColor:['#ff1744','#ffab00','#00e676'],borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#7a9ccc',font:{size:11},boxWidth:12,padding:12}}},cutout:'68%'}
+  });
+}
+
+/* ════════════════════════════════════════════════════
+   EQUIPMENT PAGE
+════════════════════════════════════════════════════ */
+function renderEqGrid() {
+  const {search,status,type}=eqFilters;
+  const filtered=DB.equipment.filter(eq=>{
+    const ms=!search||eq.name.toLowerCase().includes(search)||eq.id.toLowerCase().includes(search)||eq.loc.toLowerCase().includes(search);
+    const mt=status==='all'||eq.status===status;
+    const mtp=type==='all'||eq.type===type;
+    return ms&&mt&&mtp;
+  });
+  const grid=document.getElementById('eq-grid');
+  if(!filtered.length){grid.innerHTML='<div class="empty-state"><div class="es-icon">🔍</div><p>No equipment matches your filters</p></div>';return;}
+  grid.innerHTML=filtered.map(eq=>{
+    const p=mlPredict(eq);
+    const rc=p.risk>=75?'risk-high':p.risk>=50?'risk-med':'risk-low';
+    return `<div class="eq-card ${eq.status}" onclick="openEqDetail('${eq.id}')">
+      <div class="eq-card-head">
+        <div>
+          <div class="eq-name">${eq.name}</div>
+          <div class="eq-meta">${eq.id} · ${eq.type}</div>
+        </div>
+        ${badge(eq.status)}
+      </div>
+      <div class="eq-sensors">
+        <div class="eq-sensor"><div class="eq-sensor-val" style="color:${eq.temp>90?'var(--c-red)':eq.temp>80?'var(--c-amber)':'var(--c-teal)'}">${eq.temp.toFixed(1)}°</div><div class="eq-sensor-lab">Temp</div></div>
+        <div class="eq-sensor"><div class="eq-sensor-val" style="color:${eq.vib>7?'var(--c-red)':eq.vib>5?'var(--c-amber)':'var(--c-teal)'}">${eq.vib.toFixed(1)}</div><div class="eq-sensor-lab">Vib</div></div>
+        <div class="eq-sensor"><div class="eq-sensor-val" style="color:${eq.load>90?'var(--c-red)':eq.load>80?'var(--c-amber)':'var(--c-teal)'}">${eq.load}%</div><div class="eq-sensor-lab">Load</div></div>
+      </div>
+      <div style="margin:10px 0 4px"><div style="display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:10px;color:var(--c-text3);margin-bottom:5px"><span>RISK SCORE</span><span style="color:${p.risk>=75?'var(--c-red)':p.risk>=50?'var(--c-amber)':'var(--c-green)'}">${p.risk}/100</span></div><div class="risk-bar"><div class="risk-fill ${rc}" style="width:${p.risk}%"></div></div></div>
+      <div class="eq-footer"><span class="eq-loc">📍 ${eq.loc}</span><span class="eq-eff">⚡ ${eq.eff}% eff</span></div>
+    </div>`;
+  }).join('');
+}
+
+function filterEq(v)        { eqFilters.search=v.toLowerCase(); renderEqGrid(); }
+function filterEqStatus(v)  { eqFilters.status=v; renderEqGrid(); }
+function filterEqType(v)    { eqFilters.type=v; renderEqGrid(); }
+
+/* ════════════════════════════════════════════════════
+   EQUIPMENT DETAIL
+════════════════════════════════════════════════════ */
+function openEqDetail(id) {
+  currentEq = DB.equipment.find(e=>e.id===id);
+  if(!currentEq) return;
+  goPage('eq-detail');
+
+  const p=mlPredict(currentEq);
+  const age=2026-new Date(currentEq.install).getFullYear();
+
+  document.getElementById('eq-detail-hero').innerHTML=`
+    <div class="card-body" style="padding:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+        <div>
+          <div class="mono" style="font-size:10px;color:var(--c-text3);margin-bottom:6px">${currentEq.type} / ${currentEq.loc}</div>
+          <h2 style="font-family:var(--f-display);font-size:24px;font-weight:800;margin-bottom:8px">${currentEq.name}</h2>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <span class="tag">${currentEq.id}</span>
+            ${badge(currentEq.status)}
+            <span class="tag">${currentEq.mfr} ${currentEq.model}</span>
+            <span class="tag">Install: ${currentEq.install}</span>
+            <span class="tag">Age: ${age}y</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
+          ${metricBlock(currentEq.temp.toFixed(1)+'°C','TEMPERATURE',currentEq.temp>90?'var(--c-red)':currentEq.temp>80?'var(--c-amber)':'var(--c-teal)')}
+          ${metricBlock(currentEq.vib.toFixed(1),'VIBRATION mm/s',currentEq.vib>7?'var(--c-red)':currentEq.vib>5?'var(--c-amber)':'var(--c-teal)')}
+          ${metricBlock(currentEq.load+'%','LOAD',currentEq.load>90?'var(--c-red)':currentEq.load>80?'var(--c-amber)':'var(--c-teal)')}
+          ${metricBlock(currentEq.eff+'%','EFFICIENCY','var(--c-green)')}
+          ${metricBlock(p.risk+'/100','RISK SCORE',p.risk>=75?'var(--c-red)':p.risk>=50?'var(--c-amber)':'var(--c-green)')}
+        </div>
+      </div>
+    </div>`;
+
+  setTimeout(()=>{
+    // Sensor History Chart
+    if(charts.sensorHist) charts.sensorHist.destroy();
+    const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const ctx1=document.getElementById('sensorHistChart').getContext('2d');
+    charts.sensorHist=new Chart(ctx1,{
+      type:'line',data:{labels:days,datasets:[
+        {label:'Temperature',data:genTrend(7,currentEq.temp,8),borderColor:'#ff6d00',backgroundColor:'rgba(255,109,0,.1)',tension:.4,fill:true,borderWidth:2},
+        {label:'Vibration×8',data:genTrend(7,currentEq.vib*8,12),borderColor:'#00d4c8',backgroundColor:'rgba(0,212,200,.1)',tension:.4,fill:true,borderWidth:2},
+        {label:'Load',data:genTrend(7,currentEq.load,8),borderColor:'#00e676',backgroundColor:'rgba(0,230,118,.08)',tension:.4,fill:true,borderWidth:2},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7a9ccc',font:{size:11},boxWidth:12}}},scales:{x:{grid:{color:'rgba(28,46,74,.4)'},ticks:{color:'#3d5a82'}},y:{grid:{color:'rgba(28,46,74,.4)'},ticks:{color:'#3d5a82'}}}}
+    });
+
+    // Risk Trend Chart
+    if(charts.riskHist) charts.riskHist.destroy();
+    const p2=mlPredict(currentEq);
+    const rData=genTrend(7,p2.risk,12).map(v=>Math.max(0,Math.min(99,Math.round(v))));
+    const rColor=p2.risk>=75?'#ff1744':p2.risk>=50?'#ffab00':'#00e676';
+    const ctx2=document.getElementById('riskHistChart').getContext('2d');
+    charts.riskHist=new Chart(ctx2,{
+      type:'line',data:{labels:days,datasets:[{label:'Risk Score',data:rData,borderColor:rColor,backgroundColor:`${rColor}22`,tension:.4,fill:true,borderWidth:2,pointBackgroundColor:rColor,pointRadius:4}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7a9ccc',font:{size:11}}}},scales:{x:{grid:{color:'rgba(28,46,74,.4)'},ticks:{color:'#3d5a82'}},y:{min:0,max:100,grid:{color:'rgba(28,46,74,.4)'},ticks:{color:'#3d5a82'}}}}
+    });
+  },80);
+
+  // Maintenance History
+  const hist=DB.maintenance.filter(m=>m.eqId===currentEq.id);
+  document.getElementById('maint-timeline').innerHTML = hist.length
+    ? `<div class="timeline">${hist.map(m=>`<div class="tl-item"><div class="tl-date">${m.date}</div><div class="tl-title">${m.issue}</div><div class="tl-desc">${m.action}</div><div class="tl-tech">👤 ${m.tech} · ${badge(m.status==='Completed'?'healthy':m.status==='Scheduled'?'warning':'critical',m.status)}</div></div>`).join('')}</div>`
+    : '<div class="empty-state"><div class="es-icon">📋</div><p>No maintenance history found</p></div>';
+
+  document.getElementById('pred-ts').textContent='NOT RUN';
+  document.querySelector('#pred-panel .card-body').innerHTML='<div class="empty-state"><div class="es-icon">🤖</div><p>Click "Run ML Prediction" to analyse this equipment</p></div>';
+}
+
+function metricBlock(val,label,color) {
+  return `<div style="text-align:center"><div style="font-family:var(--f-display);font-size:26px;font-weight:800;color:${color}">${val}</div><div style="font-family:var(--f-mono);font-size:9px;color:var(--c-text3);margin-top:3px;text-transform:uppercase;letter-spacing:.08em">${label}</div></div>`;
+}
+
+function runPred(eq) {
+  if(!eq) return;
+  const p=mlPredict(eq);
+  const rc=p.risk>=75?'var(--c-red)':p.risk>=50?'var(--c-amber)':'var(--c-green)';
+  const brd=p.risk>=75?'var(--c-red)':p.risk>=50?'var(--c-amber)':'var(--c-green)';
+  const ci=Math.round(264*p.risk/100);
+
+  document.getElementById('pred-ts').textContent=new Date().toLocaleTimeString();
+  document.querySelector('#pred-panel .card-body').innerHTML=`
+    <div class="pred-dial-wrap">
+      <div class="pred-dial">
+        <svg viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="42" fill="none" stroke="var(--c-bg3)" stroke-width="10"/>
+          <circle cx="50" cy="50" r="42" fill="none" stroke="${brd}" stroke-width="10"
+            stroke-dasharray="${ci} ${264-ci}" stroke-linecap="round"/>
+        </svg>
+        <div class="pred-dial-num" style="color:${rc}">${p.risk}<span class="pred-dial-sub">/100 RISK</span></div>
+      </div>
+    </div>
+    <div class="pred-grid" style="margin-bottom:14px">
+      <div class="pred-box"><div class="pred-box-label">Predicted Failure</div><div class="pred-box-val" style="font-size:14px;color:${rc}">${p.failDate}</div></div>
+      <div class="pred-box"><div class="pred-box-label">Remaining Life</div><div class="pred-box-val" style="color:${rc}">${p.rul}<span style="font-size:12px">d</span></div></div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div class="mono" style="font-size:9px;color:var(--c-text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em">FACTOR CONTRIBUTIONS</div>
+      ${Object.entries(p.contrib).map(([k,v])=>`<div class="contrib-row"><span class="contrib-label">${k.charAt(0).toUpperCase()+k.slice(1)}</span><div class="contrib-bar"><div class="contrib-fill" style="width:${Math.min(100,v*3)}%;background:${brd}"></div></div><span class="contrib-val">${v}pt</span></div>`).join('')}
+    </div>
+    <div class="pred-rec" style="border-color:${brd}">
+      <div class="pred-rec-label">Recommendation</div>
+      <div class="pred-rec-text">${p.rec}</div>
+    </div>
+    ${p.factors.length?`<div class="pred-factors" style="margin-top:14px"><div class="mono" style="font-size:9px;color:var(--c-text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em">CONTRIBUTING FACTORS</div>${p.factors.map(f=>`<div class="pred-factor"><span class="pf-icon">▸</span>${f}</div>`).join('')}</div>`:''}`;
+  toast('ML prediction generated successfully!','success');
+}
+
+function openSchedModal(eq) {
+  if(eq) {
+    const sel=document.getElementById('sm-eq');
+    for(let o of sel.options) if(o.value===eq.id){o.selected=true;break;}
+  }
+  openModal('sched-modal');
+}
+
+/* ════════════════════════════════════════════════════
+   PREDICTIONS PAGE
+════════════════════════════════════════════════════ */
+function initPredictions() {
+  const high=DB.equipment.filter(e=>mlPredict(e).risk>=75).length;
+  const med=DB.equipment.filter(e=>{const r=mlPredict(e).risk;return r>=50&&r<75;}).length;
+  const low=DB.equipment.filter(e=>mlPredict(e).risk<50).length;
+  const avgRisk=Math.round(DB.equipment.reduce((a,e)=>a+mlPredict(e).risk,0)/DB.equipment.length);
+
+  document.getElementById('pred-kpi-row').innerHTML=[
+    {val:high,label:'High Risk (≥75)',color:'var(--c-red)',  icon:'🔴'},
+    {val:med, label:'Medium Risk',    color:'var(--c-amber)',icon:'🟡'},
+    {val:low, label:'Low Risk (<50)', color:'var(--c-green)',icon:'🟢'},
+    {val:avgRisk,label:'Avg Risk Score',color:'var(--c-teal)',icon:'📊'},
+  ].map(k=>`<div class="kpi-card" style="--kpi-color:${k.color}"><div class="kpi-accent-bg"></div><div class="kpi-icon">${k.icon}</div><div class="kpi-val" style="font-size:28px">${k.val}</div><div class="kpi-label">${k.label}</div></div>`).join('');
+
+  document.getElementById('pred-tbody').innerHTML=DB.equipment.map(eq=>{
+    const p=mlPredict(eq);
+    const rc=p.risk>=75?'badge-critical':p.risk>=50?'badge-warning':'badge-healthy';
+    const rl=p.risk>=75?'HIGH':p.risk>=50?'MEDIUM':'LOW';
+    const primary=p.factors[0]||'Within normal parameters';
+    return `<tr>
+      <td><div style="font-weight:600;font-size:13px">${eq.name}</div><div class="mono" style="font-size:10px;color:var(--c-text3)">${eq.id}</div></td>
+      <td style="min-width:110px"><div style="display:flex;align-items:center;gap:8px"><div class="risk-bar" style="flex:1"><div class="risk-fill ${p.risk>=75?'risk-high':p.risk>=50?'risk-med':'risk-low'}" style="width:${p.risk}%"></div></div><span class="mono" style="font-size:12px">${p.risk}</span></div></td>
+      <td><span class="badge ${rc}">${rl}</span></td>
+      <td class="mono" style="font-size:12px">${p.failDate}</td>
+      <td><span class="mono" style="color:${p.rul<30?'var(--c-red)':p.rul<60?'var(--c-amber)':'var(--c-green)'}">${p.rul}d</span></td>
+      <td style="font-size:12px;color:var(--c-text2);max-width:160px">${primary.substring(0,60)}${primary.length>60?'…':''}</td>
+      <td><button class="btn btn-outline btn-xs" onclick="openEqDetail('${eq.id}')">Inspect →</button></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('pred-page-ts').textContent='Last run: '+new Date().toLocaleTimeString();
+
+  setTimeout(()=>{
+    buildRadar(); buildFactorBar();
+  },80);
+}
+
+function runAllPreds() {
+  toast('Running ML predictions across all equipment…','info');
+  setTimeout(()=>{
+    initPredictions();
+    toast('All predictions updated successfully!','success');
+  },1200);
+}
+
+function buildRadar() {
+  if(charts.radar) charts.radar.destroy();
+  const ctx=document.getElementById('radarChart').getContext('2d');
+  charts.radar=new Chart(ctx,{
+    type:'radar',
+    data:{labels:['Temperature','Vibration','Load','Age','Status'],datasets:[
+      {label:'WTG-001 (Critical)',data:[95,88,94,60,100],borderColor:'#ff1744',backgroundColor:'rgba(255,23,68,.18)',pointBackgroundColor:'#ff1744',borderWidth:2,pointRadius:4},
+      {label:'Fleet Average',    data:[52,46,60,38,42],borderColor:'#00d4c8',backgroundColor:'rgba(0,212,200,.1)', pointBackgroundColor:'#00d4c8',borderWidth:2,pointRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7a9ccc',font:{size:11},boxWidth:12,padding:12}}},scales:{r:{grid:{color:'rgba(28,46,74,.6)'},ticks:{color:'#3d5a82',backdropColor:'transparent',font:{size:10}},pointLabels:{color:'#7a9ccc',font:{size:11}}}}}
+  });
+}
+
+function buildFactorBar() {
+  if(charts.factorBar) charts.factorBar.destroy();
+  const eqs=DB.equipment.sort((a,b)=>mlPredict(b).risk-mlPredict(a).risk).slice(0,8);
+  const ctx=document.getElementById('factorBar').getContext('2d');
+  charts.factorBar=new Chart(ctx,{
+    type:'bar',
+    data:{labels:eqs.map(e=>e.id),datasets:[
+      {label:'Temp Contrib',data:eqs.map(e=>mlPredict(e).contrib.temp),backgroundColor:'rgba(255,109,0,.7)',stack:'a'},
+      {label:'Vib Contrib', data:eqs.map(e=>mlPredict(e).contrib.vib), backgroundColor:'rgba(0,212,200,.7)',stack:'a'},
+      {label:'Load Contrib',data:eqs.map(e=>mlPredict(e).contrib.load),backgroundColor:'rgba(0,230,118,.7)',stack:'a'},
+      {label:'Age Contrib', data:eqs.map(e=>mlPredict(e).contrib.age), backgroundColor:'rgba(213,0,249,.6)',stack:'a'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{labels:{color:'#7a9ccc',font:{size:10},boxWidth:10,padding:10}}},scales:{x:{grid:{color:'rgba(28,46,74,.4)'},ticks:{color:'#3d5a82'},stacked:true,max:100},y:{grid:{display:false},ticks:{color:'#7a9ccc',font:{size:11}},stacked:true}}}
+  });
+}
+
+/* ════════════════════════════════════════════════════
+   MAINTENANCE PAGE
+════════════════════════════════════════════════════ */
+function initMaintenance() {
+  const total=DB.maintenance.length;
+  const done=DB.maintenance.filter(m=>m.status==='Completed').length;
+  const sched=DB.maintenance.filter(m=>m.status==='Scheduled').length;
+  const ip=DB.maintenance.filter(m=>m.status==='In Progress').length;
+  const over=DB.maintenance.filter(m=>m.status==='Overdue').length;
+
+  document.getElementById('maint-kpi-row').innerHTML=[
+    {val:total,label:'Total Work Orders',color:'var(--c-teal)',icon:'📋'},
+    {val:done, label:'Completed',        color:'var(--c-green)',icon:'✅'},
+    {val:sched,label:'Scheduled',        color:'var(--c-amber)',icon:'📅'},
+    {val:over, label:'Overdue',          color:'var(--c-red)',  icon:'⏰'},
+  ].map(k=>`<div class="kpi-card" style="--kpi-color:${k.color}"><div class="kpi-accent-bg"></div><div class="kpi-icon">${k.icon}</div><div class="kpi-val" style="font-size:28px">${k.val}</div><div class="kpi-label">${k.label}</div></div>`).join('');
+
+  renderMaintTable();
+
+  // Donut
+  setTimeout(()=>{
+    if(charts.maintDonut) charts.maintDonut.destroy();
+    const ctx=document.getElementById('maintDonut').getContext('2d');
+    charts.maintDonut=new Chart(ctx,{
+      type:'doughnut',
+      data:{labels:['Completed','Scheduled','In Progress','Overdue'],datasets:[{data:[done,sched,ip,over],backgroundColor:['rgba(0,230,118,.75)','rgba(255,171,0,.75)','rgba(0,212,200,.75)','rgba(255,23,68,.75)'],borderColor:['#00e676','#ffab00','#00d4c8','#ff1744'],borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#7a9ccc',font:{size:11},boxWidth:12,padding:10}}},cutout:'65%'}
+    });
+  },80);
+
+  // Upcoming
+  const upcoming=DB.maintenance.filter(m=>m.status==='Scheduled');
+  document.getElementById('maint-upcoming-list').innerHTML=upcoming.map(m=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(28,46,74,.5)">
+      <span class="mono" style="font-size:11px;color:var(--c-teal);min-width:80px">${m.date}</span>
+      <div><div style="font-size:12px;font-weight:600">${m.eqId}</div><div style="font-size:11px;color:var(--c-text2)">${m.tech}</div></div>
+    </div>`).join('')||'<div class="empty-state"><p>No upcoming maintenance</p></div>';
+}
+
+function renderMaintTable(statusFilter='all') {
+  const logs = statusFilter==='all' ? DB.maintenance : DB.maintenance.filter(m=>m.status===statusFilter);
+  const statusColors = {Completed:'badge-healthy',Scheduled:'badge-warning','In Progress':'badge-blue',Overdue:'badge-critical'};
+  document.getElementById('maint-tbody').innerHTML=logs.map(m=>`
+    <tr>
+      <td class="mono" style="font-size:12px;color:var(--c-teal)">${m.date}</td>
+      <td style="font-weight:600">${m.eqId}</td>
+      <td style="font-size:12px;color:var(--c-text2);max-width:180px">${m.issue}</td>
+      <td style="font-size:12px">${m.tech}</td>
+      <td><span class="tag" style="font-size:9px">${m.type}</span></td>
+      <td>${badge(statusColors[m.status]?statusColors[m.status].replace('badge-',''):'neutral',m.status)}</td>
+      <td class="mono" style="font-size:12px;color:var(--c-text2)">${m.cost?'$'+m.cost.toLocaleString():'—'}</td>
+    </tr>`).join('');
+}
+
+function filterMaintStatus(v) { renderMaintTable(v); }
+
+/* ════════════════════════════════════════════════════
+   REPORTS PAGE
+════════════════════════════════════════════════════ */
+function initReports() {
+  setTimeout(()=>{
+    buildPerfChart(); buildCostChart(); buildPlantBar();
+  },80);
+}
+
+function buildPerfChart() {
+  if(charts.perf) charts.perf.destroy();
+  const ctx=document.getElementById('perfChart').getContext('2d');
+  charts.perf=new Chart(ctx,{
+    type:'line',
+    data:{labels:['Aug','Sep','Oct','Nov','Dec','Jan','Feb'],datasets:[
+      {label:'Avg Efficiency (%)',data:[84,82,86,80,83,85,82],borderColor:'#00d4c8',backgroundColor:'rgba(0,212,200,.12)',tension:.4,fill:true,borderWidth:2,yAxisID:'y'},
+      {label:'Incidents',         data:[3,5,2,7,4,3,6],borderColor:'#ff1744',backgroundColor:'rgba(255,23,68,.1)',tension:.4,fill:true,borderWidth:2,yAxisID:'y1'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:'#7a9ccc',font:{size:11},boxWidth:12}}},scales:{x:{grid:{color:'rgba(28,46,74,.4)'},ticks:{color:'#3d5a82'}},y:{grid:{color:'rgba(28,46,74,.4)'},ticks:{color:'#3d5a82'},title:{display:true,text:'Efficiency %',color:'#3d5a82',font:{size:10}}},y1:{position:'right',grid:{display:false},ticks:{color:'#3d5a82'},title:{display:true,text:'Incidents',color:'#3d5a82',font:{size:10}}}}}
+  });
+}
+
+function buildCostChart() {
+  if(charts.cost) charts.cost.destroy();
+  const ctx=document.getElementById('costChart').getContext('2d');
+  charts.cost=new Chart(ctx,{
+    type:'bar',
+    data:{labels:['Q3 2025','Q4 2025','Q1 2026 (proj)'],datasets:[
+      {label:'Maintenance Cost ($k)',data:[28,34,22],backgroundColor:'rgba(255,109,0,.65)',borderColor:'#ff6d00',borderWidth:1},
+      {label:'Avoided Downtime ($k)',data:[145,180,210],backgroundColor:'rgba(0,230,118,.55)',borderColor:'#00e676',borderWidth:1},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7a9ccc',font:{size:11},boxWidth:12}}},scales:{x:{grid:{display:false},ticks:{color:'#3d5a82'}},y:{grid:{color:'rgba(28,46,74,.4)'},ticks:{color:'#3d5a82'}}}}
+  });
+}
+
+function buildPlantBar() {
+  if(charts.plantBar) charts.plantBar.destroy();
+  const ctx=document.getElementById('plantBarChart').getContext('2d');
+  charts.plantBar=new Chart(ctx,{
+    type:'bar',
+    data:{labels:['North Wind Farm','Solar Array Alpha','Hydro Station 3'],datasets:[
+      {label:'Avg Efficiency',data:[87,89,79],backgroundColor:['rgba(0,212,200,.65)','rgba(0,230,118,.65)','rgba(255,171,0,.65)'],borderColor:['#00d4c8','#00e676','#ffab00'],borderWidth:2},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7a9ccc',font:{size:11}}}},scales:{x:{grid:{display:false},ticks:{color:'#7a9ccc'}},y:{min:60,max:100,grid:{color:'rgba(28,46,74,.4)'},ticks:{color:'#3d5a82'},title:{display:true,text:'Efficiency %',color:'#3d5a82',font:{size:10}}}}}
+  });
+}
+
+function genReport(type) {
+  const hdr={
+    fleet:'Equipment ID,Name,Type,Location,Status,Temperature,Vibration,Load,Efficiency,Risk Score,Predicted Failure,Remaining Life (days)',
+    maintenance:'Log ID,Equipment ID,Date,Issue,Action Taken,Technician,Type,Status,Cost',
+    predictions:'Equipment ID,Name,Risk Score,Risk Level,Predicted Failure Date,Remaining Life (days),Recommendation',
+    sensor:'Reading ID,Equipment ID,Timestamp,Temperature (C),Vibration (mm/s),Load (%)',
+    incidents:'ID,Equipment,Date,Severity,Description,Resolution,Technician',
+  };
+  let rows='';
+  if(type==='fleet'){
+    rows=DB.equipment.map(eq=>{const p=mlPredict(eq);const rl=p.risk>=75?'HIGH':p.risk>=50?'MEDIUM':'LOW';return `${eq.id},"${eq.name}",${eq.type},${eq.loc},${eq.status},${eq.temp.toFixed(1)},${eq.vib.toFixed(1)},${eq.load},${eq.eff},${p.risk},${p.failDate},${p.rul}`;}).join('\n');
+  }else if(type==='maintenance'){
+    rows=DB.maintenance.map(m=>`${m.id},${m.eqId},${m.date},"${m.issue}","${m.action}",${m.tech},${m.type},${m.status},${m.cost||0}`).join('\n');
+  }else if(type==='predictions'){
+    rows=DB.equipment.map(eq=>{const p=mlPredict(eq);const rl=p.risk>=75?'HIGH':p.risk>=50?'MEDIUM':'LOW';return `${eq.id},"${eq.name}",${p.risk},${rl},${p.failDate},${p.rul},"${p.rec}"`;}).join('\n');
+  }else if(type==='sensor'){
+    rows=DB.equipment.map((eq,i)=>`${i+1},${eq.id},${new Date().toISOString()},${eq.temp.toFixed(2)},${eq.vib.toFixed(3)},${eq.load}`).join('\n');
+  }else{
+    rows=DB.maintenance.filter(m=>m.status==='Completed').map(m=>`${m.id},${m.eqId},${m.date},High,"${m.issue}","${m.action}",${m.tech}`).join('\n');
+  }
+  const csv=hdr[type]+'\n'+rows;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=`terragrid_${type}_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  toast(`Report downloaded: terragrid_${type}.csv`,'success');
+}
+
+/* ════════════════════════════════════════════════════
+   USERS PAGE
+════════════════════════════════════════════════════ */
+function renderUsers() {
+  const roleColors={Admin:'critical',Engineer:'blue',Manager:'warning'};
+  document.getElementById('users-tbody').innerHTML=DB.users.map(u=>`
+    <tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--c-blue),var(--c-teal));display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-size:13px;font-weight:700">${u.name[0]}</div>
+        <span style="font-weight:600">${u.name}</span>
+      </div></td>
+      <td style="color:var(--c-text2);font-size:13px">${u.email}</td>
+      <td>${badge(roleColors[u.role]||'neutral',u.role)}</td>
+      <td class="mono" style="font-size:11px;color:var(--c-text3)">${u.lastLogin}</td>
+      <td>${badge(u.active?'healthy':'warning',u.active?'Active':'Inactive')}</td>
+      <td><div style="display:flex;gap:6px">
+        <button class="btn btn-outline btn-xs" onclick="openEditUser(${u.id})">Edit</button>
+        <button class="btn btn-outline btn-xs" onclick="toggleUser(${u.id})" style="color:var(--c-amber);border-color:rgba(255,171,0,.3)">${u.active?'Deactivate':'Activate'}</button>
+        <button class="btn btn-danger-out btn-xs" onclick="deleteUser(${u.id})">Remove</button>
+      </div></td>
+    </tr>`).join('');
+  // Update count in card header
+  const tag = document.getElementById('users-count-tag');
+  if(tag) tag.textContent = DB.users.length + ' Total';
+}
+
+/* ════════════════════════════════════════════════════
+   MODALS
+════════════════════════════════════════════════════ */
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+
+
+function populateSchedModal() {
+  const sel=document.getElementById('sm-eq');
+  sel.innerHTML='<option value="">Select equipment...</option>'+DB.equipment.map(e=>`<option value="${e.id}">${e.id} — ${e.name}</option>`).join('');
+  const d=new Date(); d.setDate(d.getDate()+3);
+  document.getElementById('sm-date').value=d.toISOString().split('T')[0];
+}
+
+function saveMaint() {
+  const eq=document.getElementById('sm-eq').value;
+  const date=document.getElementById('sm-date').value;
+  const tech=document.getElementById('sm-tech').value;
+  const type=document.getElementById('sm-type').value;
+  const issue=document.getElementById('sm-issue').value||'Scheduled maintenance';
+  const cost=document.getElementById('sm-cost').value;
+  if(!eq){toast('Please select equipment','error');return;}
+  DB.maintenance.unshift({id:DB.maintenance.length+1,eqId:eq,date,issue,action:'',tech,type:type.split(' ')[0],status:'Scheduled',cost:cost?parseFloat(cost):null});
+  closeModal('sched-modal');
+  toast(`Maintenance scheduled for ${eq} on ${date} — ${tech} assigned`,'success');
+}
+
+function addEquipment() {
+  const id=document.getElementById('aeq-id').value.trim();
+  const name=document.getElementById('aeq-name').value.trim();
+  if(!id||!name){toast('Equipment ID and name are required','error');return;}
+  if(DB.equipment.find(e=>e.id===id)){toast('Equipment ID already exists','error');return;}
+  DB.equipment.push({id,name,type:document.getElementById('aeq-type').value,loc:document.getElementById('aeq-loc').value,install:document.getElementById('aeq-date').value||'2026-01-01',status:'healthy',temp:65+Math.random()*10,vib:2+Math.random()*2,load:60+Math.random()*15,eff:90+Math.random()*8,mfr:document.getElementById('aeq-mfr').value,model:''});
+  closeModal('add-eq-modal');
+  renderEqGrid();
+  toast(`${name} registered successfully!`,'success');
+}
+
+function addUser() {
+  const name  = document.getElementById('au-name').value.trim();
+  const email = document.getElementById('au-email').value.trim().toLowerCase();
+  const role  = document.getElementById('au-role').value;
+  const pw    = document.getElementById('au-pw').value;
+
+  if (!name || !email || !pw) { toast('All fields are required','error'); return; }
+  if (pw.length < 8)          { toast('Password must be at least 8 characters','error'); return; }
+  if (DB.users.find(u=>u.email.toLowerCase()===email)) { toast('A user with this email already exists','error'); return; }
+
+  const newId = DB.users.length ? Math.max(...DB.users.map(u=>u.id))+1 : 1;
+  DB.users.push({id:newId, name, email, pw, role, lastLogin:'Never', active:true, isDefault:false});
+  saveExtraUsers();  // persist admin-added users
+  closeModal('add-user-modal');
+  document.getElementById('au-name').value='';
+  document.getElementById('au-email').value='';
+  document.getElementById('au-pw').value='';
+  renderUsers();
+  toast(`User account created for ${name} (${role})`, 'success');
+}
+
+function toggleUser(id) {
+  const u = DB.users.find(u=>u.id===id);
+  if (!u) return;
+  if (u.id === SESSION.userId) { toast('You cannot deactivate your own account','error'); return; }
+  u.active = !u.active;
+  savePasswordOverride(u);
+  renderUsers();
+  toast(`${u.name} has been ${u.active?'activated':'deactivated'}`, u.active?'success':'warn');
+}
+
+function deleteUser(id) {
+  const u = DB.users.find(u=>u.id===id);
+  if (!u) return;
+  if (u.id === SESSION.userId) { toast('You cannot delete your own account','error'); return; }
+  // Prevent deleting the last Admin
+  if (u.role==='Admin' && DB.users.filter(x=>x.role==='Admin'&&x.active).length<=1) {
+    toast('Cannot delete the last active admin account','error'); return;
+  }
+  DB.users.splice(DB.users.indexOf(u),1);
+  saveExtraUsers();
+  renderUsers();
+  toast(`User ${u.name} removed from system`, 'warn');
+}
+
+function openEditUser(id) {
+  const u = DB.users.find(u=>u.id===id);
+  if (!u) return;
+  document.getElementById('eu-id').value    = id;
+  document.getElementById('eu-name').value  = u.name;
+  document.getElementById('eu-email').value = u.email;
+  document.getElementById('eu-role').value  = u.role;
+  document.getElementById('eu-pw').value    = '';
+  openModal('edit-user-modal');
+}
+
+function saveEditUser() {
+  const id    = parseInt(document.getElementById('eu-id').value);
+  const u     = DB.users.find(u=>u.id===id);
+  if (!u) return;
+  const name  = document.getElementById('eu-name').value.trim();
+  const email = document.getElementById('eu-email').value.trim().toLowerCase();
+  const role  = document.getElementById('eu-role').value;
+  const pw    = document.getElementById('eu-pw').value;
+
+  if (!name || !email) { toast('Name and email are required','error'); return; }
+  if (email !== u.email && DB.users.find(x=>x.email.toLowerCase()===email)) {
+    toast('Another user with this email already exists','error'); return;
+  }
+
+  u.name  = name;
+  u.email = email;
+  u.role  = role;
+  if (pw) {
+    if (pw.length<8) { toast('Password must be at least 8 characters','error'); return; }
+    u.pw = pw;
+    u.isDefault = false;
+  }
+  savePasswordOverride(u);
+  saveExtraUsers();
+
+  // Update session if editing self
+  if (id === SESSION.userId) {
+    SESSION.name = name;
+    SESSION.role = role;
+    SESSION.email = email;
+    document.getElementById('uw-name').textContent = name;
+    document.getElementById('uw-role').textContent = role.toUpperCase();
+    document.getElementById('uw-avatar').textContent = name[0];
+  }
+
+  closeModal('edit-user-modal');
+  renderUsers();
+  toast(`User ${name} updated successfully`, 'success');
+}
+
+function saveSettings() {
+  toast('Settings saved and applied across all monitoring nodes','success');
+}
+
+/* ════════════════════════════════════════════════════
+   TOAST NOTIFICATIONS
+════════════════════════════════════════════════════ */
+const ICONS={success:'✅',error:'❌',info:'ℹ️',warn:'⚠️'};
+function toast(msg, type='info', dur=3500) {
+  const wrap=document.getElementById('toast-wrap');
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;
+  t.innerHTML=`<span class="toast-icon">${ICONS[type]||'ℹ️'}</span><span>${msg}</span>`;
+  wrap.appendChild(t);
+  setTimeout(()=>{t.style.animation='fadeIn .3s reverse';setTimeout(()=>t.remove(),280);},dur);
+}
+
+/* ════════════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════════════ */
+function badge(type, label) {
+  // type can be status string or badge class part
+  const map={healthy:'badge-healthy',warning:'badge-warning',critical:'badge-critical',blue:'badge-blue',purple:'badge-purple',neutral:'badge-neutral'};
+  const cls=map[type]||map['neutral'];
+  const lbl=label||type.charAt(0).toUpperCase()+type.slice(1);
+  return `<span class="badge ${cls}">${lbl}</span>`;
+}
+function rnd(n,min,max){return Array.from({length:n},()=>+(min+(Math.random()*(max-min))).toFixed(1));}
+function genTrend(n,end,v){const a=[end];for(let i=1;i<n;i++)a.unshift(Math.max(0,a[0]+(Math.random()-.55)*v));return a;}
+function rndTime(){return ['2m ago','7m ago','13m ago','28m ago','1h ago','2h ago'][Math.floor(Math.random()*6)];}
+
+// Enter key login
+document.getElementById('l-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('l-email').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+// Modal backdrop close
+document.querySelectorAll('.modal-bg').forEach(bg=>{
+  bg.addEventListener('click', e => {
+    if(e.target === bg) {
+      // Don't allow closing the forced password change modal
+      if(bg.id === 'change-pw-modal') {
+        const u = SESSION && DB.users.find(u=>u.id===SESSION.userId);
+        if(u && u.isDefault) return;
+      }
+      bg.classList.remove('open');
+    }
+  });
+});
+
+</script>
+</body>
+</html>
